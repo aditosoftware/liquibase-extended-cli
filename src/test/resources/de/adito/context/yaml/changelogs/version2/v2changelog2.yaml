@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 8
+      author: your_author
+      context: yaml-version2,yaml-production
+      changes:
+        - addColumn:
+            tableName: person
+            columns:
+              - column:
+                  name: middle_name
+                  type: varchar(255)

@@ -1,0 +1,13 @@
+# YAML Changelog
+databaseChangeLog:
+  - changeSet:
+      id: 3
+      author: your_author
+      context: yaml-testing
+      changes:
+        - addColumn:
+            tableName: person
+            columns:
+              - column:
+                  name: gender
+                  type: varchar(2)
