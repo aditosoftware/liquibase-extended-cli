@@ -39,6 +39,7 @@ class ContextResolverTest
       Map<String, List<String>> filesWithContexts = Map.of(
           "noContext-changelog", List.of(),
           "example-changelog", List.of("context"),
+          "utf8-changelog", List.of("âèù", "äöüß", "🐱‍🚀"),
           "three-changelogs", List.of("bar", "baz", "foo"),
           "nested-changelog", List.of("development", "junit", "production", "special", "special_version2", "testing", "v1", "v2", "version1", "version2")
       );
