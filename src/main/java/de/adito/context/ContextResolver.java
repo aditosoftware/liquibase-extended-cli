@@ -55,6 +55,7 @@ public class ContextResolver implements Callable<Integer>
 
   public static void main(String... args)
   {
-    System.exit(new CommandLine(new ContextResolver()).execute(args));
+    int exitCode = new CommandLine(new ContextResolver()).execute(args);
+    System.exit(exitCode);
   }
 }
