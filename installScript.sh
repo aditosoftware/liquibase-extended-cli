@@ -26,7 +26,7 @@ else
   jarFilePath=$jarPath$jarFile
   jarFileTargetPath=$jarTargetPath$jarFile
 
-  JAVA_HOME="C:\Program Files\Java\jdk-13" mvn clean install -T 1C -P adito.m2
+  JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8 JAVA_HOME="C:\Program Files\Java\jdk-13" mvn clean install -T 1C -P adito.m2
 
   cp $jarFilePath $jarFileTargetPath
 
