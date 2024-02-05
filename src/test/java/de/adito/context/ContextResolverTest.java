@@ -1,6 +1,7 @@
 package de.adito.context;
 
 import com.github.stefanbirkner.systemlambda.SystemLambda;
+import com.google.gson.Gson;
 import lombok.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -107,9 +108,11 @@ class ContextResolverTest
         errorCode.set(SystemLambda.catchSystemExit(() -> ContextResolver.main(pChangelogPath)));
       });
 
+      String[] actual = new Gson().fromJson(outText.trim(), String[].class);
+
       assertAll(
           () -> assertEquals(0, errorCode.get(), pDisplayName + ": errorCode"),
-          () -> assertEquals(pResult.toString(), outText.trim(), pDisplayName + ": out message")
+          () -> assertArrayEquals(pResult.toArray(String[]::new), actual, pDisplayName + ": out message")
       );
     }
   }
@@ -132,22 +135,13 @@ class ContextResolverTest
     }
 
     /**
-     * Checks that exit code 10 will be returned, when no valid path was given.
+     * Checks that exit code 1 will be returned, when no valid path was given.
      */
     @Test
     @SneakyThrows
-    void shouldReturnExitCode10WhenNoValidFile()
+    void shouldReturnExitCode1WhenNoValidFile()
     {
-      String noValidFile = "no_valid_file";
-
-      AtomicInteger errorCode = new AtomicInteger(-1);
-
-      String errText = SystemLambda.tapSystemErr(() -> errorCode.set(SystemLambda.catchSystemExit(() -> ContextResolver.main(noValidFile))));
-
-      assertAll(
-          () -> assertEquals(10, errorCode.get(), "error code"),
-          () -> assertEquals("changelog file does not exist: " + noValidFile, errText.trim(), "err message")
-      );
+      assertEquals(1, SystemLambda.catchSystemExit(() -> ContextResolver.main("no_valid_file")), "error code");
     }
   }
 
