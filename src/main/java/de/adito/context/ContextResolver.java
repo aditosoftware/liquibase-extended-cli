@@ -8,7 +8,6 @@ import picocli.CommandLine;
 import picocli.CommandLine.*;
 
 import java.nio.file.Path;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.*;
 
@@ -17,9 +16,13 @@ import java.util.stream.*;
  *
  * @author r.hartinger, 31.01.2024
  */
-@Command(name = "context", mixinStandardHelpOptions = true)
+@Command(name = "context", description = "Resolves the context from a root changelog and all depending changelogs",
+    version = "1.0.0", mixinStandardHelpOptions = true)
 public class ContextResolver implements Callable<Integer>
 {
+  /**
+   * The absolute path to the root changelog.
+   */
   @Parameters(index = "0", arity = "1", description = "The absolute path to the changelog")
   private Path changelogFile;
 
@@ -35,7 +38,7 @@ public class ContextResolver implements Callable<Integer>
 
     try (Liquibase liquibase = new Liquibase(relativePathToChangelog.toString(), new DirectoryResourceAccessor(parent), (Database) null))
     {
-      List<String> contexts = liquibase.getDatabaseChangeLog().getChangeSets().stream()
+      String contexts = liquibase.getDatabaseChangeLog().getChangeSets().stream()
           .flatMap(pChangeSet -> Stream.concat(pChangeSet.getContextFilter().getContexts().stream(),
                                                pChangeSet.getInheritableContextFilter().stream()
                                                    .flatMap(pContextExpr -> pContextExpr.getContexts().stream()))
@@ -43,12 +46,9 @@ public class ContextResolver implements Callable<Integer>
           // sort and distinct all contexts
           .sorted(String.CASE_INSENSITIVE_ORDER)
           .distinct()
-          .collect(Collectors.toList());
+          .collect(Collectors.collectingAndThen(Collectors.toList(), new Gson()::toJson));
 
-
-      // transform to json, so it can be parsed back
-      String contextToTransfer = new Gson().toJson(contexts);
-      System.out.println(contextToTransfer);
+      System.out.println(contexts);
       return 0;
     }
   }
