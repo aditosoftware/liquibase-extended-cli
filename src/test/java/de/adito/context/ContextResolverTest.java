@@ -93,7 +93,7 @@ class ContextResolverTest
      *
      * @param pDisplayName   the display name of the test
      * @param pResult        the result of the method, given as an array
-     * @param pChangelogPath the absolute path to the root changelog fiel
+     * @param pChangelogPath the absolute path to the root changelog field
      */
     @ParameterizedTest(name = "{0}")
     @MethodSource

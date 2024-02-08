@@ -35,7 +35,7 @@ java -cp "C:/dev/target/liquibase-extended-cli.jar;C:/path/to/picocli-4.7.5.jar;
 
 #### context
 
-Takes an absolute file path and gets all contexts from it.
+Takes an absolute file path and gets all contexts from the given changelog and their linked changelogs.
 
 * Example Input: `C:\dev\project\.liquibase\Data\changelog.xml`
 * Example output: `["example", "workspace"]`. Every successful output is written to stdout.

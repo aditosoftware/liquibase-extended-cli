@@ -48,6 +48,7 @@ public class ContextResolver implements Callable<Integer>
           .distinct()
           .collect(Collectors.collectingAndThen(Collectors.toList(), new Gson()::toJson));
 
+      // System.out is needed to write to stdout, a logger would write to stderr
       System.out.println(contexts);
       return 0;
     }
