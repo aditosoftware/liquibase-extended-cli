@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- Note: Liquibase sql files do not have include/includeAll possibilites, therefore an other
+    language is needed -->
+
+    <include file="changelogs/changelog1.sql" context="sql-junit" relativeToChangelogFile="true" />
+    <include file="changelogs/changelog2.sql" context="sql-junit" relativeToChangelogFile="true" />
+    <include file="changelogs/changelog3.xml" context="sql-junit" relativeToChangelogFile="true" />
+
+</databaseChangeLog>

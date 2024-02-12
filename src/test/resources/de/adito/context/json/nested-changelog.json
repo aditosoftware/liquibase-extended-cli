@@ -1,0 +1,25 @@
+{
+  "databaseChangeLog": [
+    {
+      "include": {
+        "relativeToChangelogFile": true,
+        "file": "changelogs/changelog1.json",
+        "context": "json-junit"
+      }
+    },
+    {
+      "include": {
+        "relativeToChangelogFile": true,
+        "file": "changelogs/changelog2.json",
+        "context": "json-junit"
+      }
+    },
+    {
+      "include": {
+        "relativeToChangelogFile": true,
+        "file": "changelogs/changelog3.json",
+        "context": "json-junit"
+      }
+    }
+  ]
+}

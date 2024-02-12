@@ -1,0 +1,25 @@
+{
+    "databaseChangeLog": [
+        {
+            "includeAll": {
+                "path": "version1",
+                "relativeToChangelogFile": true,
+                "context": "json-v1"
+            }
+        },
+        {
+            "include": {
+                "relativeToChangelogFile": true,
+                "file": "version2/v2changelog1.json",
+                "context": "json-v2"
+            }
+        },
+        {
+            "include": {
+                "relativeToChangelogFile": true,
+                "file": "version2/v2changelog2.json",
+                "context": "json-v2"
+            }
+        }
+    ]
+}

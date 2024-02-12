@@ -1,0 +1,26 @@
+{
+    "databaseChangeLog": [
+        {
+            "changeSet": {
+                "id": 8,
+                "author": "your_author",
+                "context": "json-version2,json-production",
+                "changes": [
+                    {
+                        "addColumn": {
+                            "tableName": "person",
+                            "columns": [
+                                {
+                                    "column": {
+                                        "name": "middle_name",
+                                        "type": "varchar(255)"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - include:
+      relativeToChangelogFile: true
+      file: changelogs/changelog1.yaml
+      context: yaml-junit
+  - include:
+      relativeToChangelogFile: true
+      file: changelogs/changelog2.yaml
+      context: yaml-junit
+  - include:
+      relativeToChangelogFile: true
+      file: changelogs/changelog3.yaml
+      context: yaml-junit

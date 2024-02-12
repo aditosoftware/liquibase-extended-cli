@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: your_author
+      context: yaml-production
+      changes:
+        - addColumn:
+            tableName: person
+            columns:
+              - column:
+                  name: telephone
+                  type: varchar(255)
+  - changeSet:
+      id: 2
+      author: your_author
+      context: yaml-development
+      changes:
+        - addColumn:
+            tableName: person
+            columns:
+              - column:
+                  name: birth_year
+                  type: number
