@@ -1,0 +1,89 @@
+{ "databaseChangeLog": [
+  {
+    "changeSet": {
+      "id": "1",
+      "author": "your.name",
+      "comment": "example comment",
+      "contextFilter": "sql-context",
+      "failOnError": true,
+      "labels": "example-label",
+      "objectQuotingStrategy": "LEGACY",
+      "rollback": {
+        "sql": {
+          "splitStatements": true,
+          "sql": "DROP TABLE person;",
+          "stripComments": false
+        }
+      },
+      "changes": [
+        {
+          "sql": {
+            "splitStatements": true,
+            "sql": "create table person (\r\n    id int primary key auto_increment not null,\r\n    name varchar(50) not null,\r\n    address1 varchar(50),\r\n    address2 varchar(50),\r\n    city varchar(30)\r\n)",
+            "stripComments": true
+          }
+        }
+      ]
+      
+    }
+  },
+  
+  {
+    "changeSet": {
+      "id": "2",
+      "author": "your.name",
+      "comment": "example comment",
+      "contextFilter": "sql-context",
+      "failOnError": true,
+      "labels": "example-label",
+      "objectQuotingStrategy": "LEGACY",
+      "rollback": {
+        "sql": {
+          "splitStatements": true,
+          "sql": "DROP TABLE company;",
+          "stripComments": false
+        }
+      },
+      "changes": [
+        {
+          "sql": {
+            "splitStatements": true,
+            "sql": "create table company (\r\n    id int primary key auto_increment not null,\r\n    name varchar(50) not null,\r\n    address1 varchar(50),\r\n    address2 varchar(50),\r\n    city varchar(30)\r\n)",
+            "stripComments": true
+          }
+        }
+      ]
+      
+    }
+  },
+  
+  {
+    "changeSet": {
+      "id": "3",
+      "author": "other.dev",
+      "comment": "example comment",
+      "contextFilter": "sql-context",
+      "failOnError": true,
+      "labels": "example-label",
+      "objectQuotingStrategy": "LEGACY",
+      "rollback": {
+        "sql": {
+          "splitStatements": true,
+          "sql": "ALTER TABLE person DROP COLUMN country;",
+          "stripComments": false
+        }
+      },
+      "changes": [
+        {
+          "sql": {
+            "splitStatements": true,
+            "sql": "alter table person add column country varchar(2)",
+            "stripComments": true
+          }
+        }
+      ]
+      
+    }
+  }
+  
+]}

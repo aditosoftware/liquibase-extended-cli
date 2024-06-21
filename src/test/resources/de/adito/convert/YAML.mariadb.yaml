@@ -1,0 +1,80 @@
+databaseChangeLog:
+- changeSet:
+    id: '1'
+    author: your.name
+    comment: example-comment
+    contextFilter: yaml-context
+    labels: example-label
+    objectQuotingStrategy: LEGACY
+    changes:
+    - createTable:
+        columns:
+        - column:
+            autoIncrement: true
+            constraints:
+              nullable: false
+              primaryKey: true
+            name: id
+            type: int
+        - column:
+            constraints:
+              nullable: false
+            name: name
+            type: varchar(50)
+        - column:
+            name: address1
+            type: varchar(50)
+        - column:
+            name: address2
+            type: varchar(50)
+        - column:
+            name: city
+            type: varchar(30)
+        tableName: person
+- changeSet:
+    id: '2'
+    author: your.name
+    comment: example-comment
+    contextFilter: yaml-context
+    labels: example-label
+    objectQuotingStrategy: LEGACY
+    changes:
+    - createTable:
+        columns:
+        - column:
+            autoIncrement: true
+            constraints:
+              nullable: false
+              primaryKey: true
+            name: id
+            type: int
+        - column:
+            constraints:
+              nullable: false
+            name: name
+            type: varchar(50)
+        - column:
+            name: address1
+            type: varchar(50)
+        - column:
+            name: address2
+            type: varchar(50)
+        - column:
+            name: city
+            type: varchar(30)
+        tableName: company
+- changeSet:
+    id: '3'
+    author: other.dev
+    comment: example-comment
+    contextFilter: yaml-context
+    labels: example-label
+    objectQuotingStrategy: LEGACY
+    changes:
+    - addColumn:
+        columns:
+        - column:
+            name: country
+            type: varchar(2)
+        tableName: person
+
