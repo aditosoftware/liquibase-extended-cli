@@ -7,13 +7,17 @@ import liquibase.resource.*;
 import liquibase.serializer.*;
 import lombok.*;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
 import picocli.CommandLine;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.*;
 
 import java.io.*;
 import java.nio.file.*;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
+import java.util.stream.*;
 
 /**
  * Converts from one format to another format.
@@ -31,24 +35,40 @@ import java.util.stream.Stream;
 public class FormatConverter implements Callable<Integer>
 {
 
-  @CommandLine.Option(names = {"-f", "--format"}, description = "The format you want to convert to. Valid values: ${COMPLETION-CANDIDATES}",
+
+  @Option(names = {"-f", "--format"}, description = "The format you want to convert to. Valid values: ${COMPLETION-CANDIDATES}",
       required = true)
   private Format format;
 
-  @CommandLine.Parameters(description = "The input file or directory", index = "0", converter = ExistingPathConverter.class)
+  @Option(names = {"-d", "--database-type"}, description = "The type of the database. This is only required when converting to SQL")
+  private String databaseType;
+
+  @Parameters(description = "The input file or directory", index = "0", converter = ExistingPathConverter.class)
   private Path input;
 
-  @CommandLine.Parameters(description = "The output directory", index = "1", converter = ExistingFolderConverter.class)
+  @Parameters(description = "The output directory", index = "1", converter = ExistingFolderConverter.class)
   private Path output;
 
-  // FIXME sql benötigt db-Angabe im Namen bei sql!
+  @Spec
+  private CommandSpec spec;
 
-  private int errorCode;
+  /**
+   * The files that could not be converted. These will be put out at the end of the command execution.
+   */
+  private final Set<Path> errorFiles = new HashSet<>();
+
+
+  private final Set<Path> includeFiles = new HashSet<>();
+  private final Map<Path, Path> filesHandled = new HashMap<>();
 
 
   @Override
   public Integer call() throws Exception
   {
+    if (format == Format.SQL && StringUtils.isBlank(databaseType))
+    {
+      throw new ParameterException(spec.commandLine(), "Option '--database-type' is required, when format SQL is given");
+    }
 
     if (Files.isDirectory(input))
     {
@@ -64,8 +84,49 @@ public class FormatConverter implements Callable<Integer>
       // single file, just convert
       convertFile(input);
     }
-    
-    return errorCode;
+
+    // handles the includes after all files were transformed
+    if (!includeFiles.isEmpty())
+      handleIncludes();
+
+    if (errorFiles.isEmpty())
+      return 0;
+    else
+    {
+      System.err.println("Error converting " + errorFiles.size() + " file(s):\n" +
+                             errorFiles.stream().map(pPath -> " - " + pPath).collect(Collectors.joining("\n")) +
+                             "\nThese file(s) were copied to the new location.");
+      return 3;
+    }
+  }
+
+  /**
+   * Handles the files with includes.
+   */
+  private void handleIncludes()
+  {
+    for (Path includeFile : includeFiles)
+    {
+      try
+      {
+        System.out.printf("Handling file '%s' with includes%n", relativizeInput(includeFile));
+
+
+        new IncludeHandler(output, input, filesHandled, includeFile, generateNewFileName(includeFile, false)).handleIncludes();
+
+      }
+      catch (IOException pE)
+      {
+        // todo error handling ist sehr identisch überall
+        errorFiles.add(includeFile);
+        System.err.printf("error handling file with includes '%s' to format %s: %s%n", includeFile, format, pE.getMessage());
+        pE.printStackTrace(System.err);
+        copyOldFile(includeFile);
+      }
+
+    }
+
+
   }
 
 
@@ -77,17 +138,25 @@ public class FormatConverter implements Callable<Integer>
   private void convertFile(@NonNull Path pPathToConvert)
   {
 
-    if (!Format.isValidFormat(FilenameUtils.getExtension(pPathToConvert.toString())))
+    String extension = FilenameUtils.getExtension(pPathToConvert.toString());
+    if (!Format.isValidFormat(extension) || format.isTargetFormat(extension))
     {
-      // invalid file format, just copy the old file to the new location
-      System.out.printf("Copying file '%s' to new location%n", input.getParent().relativize(pPathToConvert));
+      // invalid file format or file in the correct target format, just copy the old file to the new location
+      System.out.printf("Copying file '%s' to new location%n", relativizeInput(pPathToConvert));
 
       copyOldFile(pPathToConvert);
+    }
+    else if (IncludeHandler.checkForIncludes(pPathToConvert))
+    {
+      // file with include will be handled after all other files, save for later
+      includeFiles.add(pPathToConvert);
     }
     else
     {
       // valid file format, convert it
-      System.out.printf("Converting changeset '%s'%n", input.getParent().relativize(pPathToConvert));
+      System.out.printf("Converting changeset '%s'%n", relativizeInput(pPathToConvert));
+
+      // TODO: wenn include / includeAll da ist, diese Dateien einfach so wie sie ist rüberkopieren
 
       try (ResourceAccessor resourceAccessor = new DirectoryResourceAccessor(pPathToConvert.getParent()))
       {
@@ -105,11 +174,13 @@ public class FormatConverter implements Callable<Integer>
           changeLog.getChangeSets().forEach(pChangeSet -> pChangeSet.setFilePath(newFilePath.getFileName().toString()));
           // and then write them
           serializer.write(changeLog.getChangeSets(), outputStream);
+
+          this.filesHandled.put(pPathToConvert, newFilePath);
         }
       }
       catch (Exception pE)
       {
-        errorCode = 3;
+        errorFiles.add(pPathToConvert);
         System.err.printf("error converting file '%s' to format %s: %s%n", pPathToConvert, format, pE.getMessage());
         pE.printStackTrace(System.err);
         copyOldFile(pPathToConvert);
@@ -117,16 +188,26 @@ public class FormatConverter implements Callable<Integer>
     }
   }
 
+
+  /**
+   * Copies an old file to the new location without converting.
+   *
+   * @param pOldFile The file that needs to be copied
+   */
   private void copyOldFile(Path pOldFile)
   {
     try
     {
       Path newFile = generateNewFileName(pOldFile, false);
 
-      Files.copy(pOldFile, newFile);
+      Files.copy(pOldFile, newFile, StandardCopyOption.REPLACE_EXISTING);
+
+      this.filesHandled.put(pOldFile, newFile);
     }
     catch (IOException pE)
     {
+      // FIXME hier das programm verlassen oder weitermachen, wenn das kopieren scheitert?
+      // FIXME file to errorFiles hinzufügen
       System.err.printf("error copying file '%s' to new target dir: %s%n", pOldFile, pE.getMessage());
       pE.printStackTrace(System.err);
     }
@@ -148,7 +229,7 @@ public class FormatConverter implements Callable<Integer>
     {
       // Find out file name with new extension
       String baseName = FilenameUtils.getBaseName(pToConvert.toString());
-      newFileName = baseName + format.getFileEnding();
+      newFileName = baseName + (StringUtils.isBlank(databaseType) ? "" : ("." + databaseType.toLowerCase())) + format.getFileEnding();
     }
     else
     {
@@ -175,6 +256,18 @@ public class FormatConverter implements Callable<Integer>
 
     // and finally, set the new file name
     return newLocationInOutput.resolve(newFileName);
+  }
+
+  /**
+   * Relativizes a path to the input directory.
+   *
+   * @param pPath the given path
+   * @return the relative path to the input directory
+   */
+  @NonNull
+  public Path relativizeInput(@NonNull Path pPath)
+  {
+    return input.getParent().relativize(pPath);
   }
 
 }

@@ -1,0 +1,29 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <preConditions>
+    <dbms type="oracle"/>
+    <runningAs username="SYSTEM"/>
+  </preConditions>
+
+  <changeSet id="1" author="Liquibase User">
+    <preConditions onFail="WARN">
+      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM example_table</sqlCheck>
+    </preConditions>
+
+    <createTable tableName="example_table">
+      <column name="id" type="int" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="firstname" type="varchar(50)"/>
+      <column name="lastname" type="varchar(50)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="state" type="char(2)"/>
+    </createTable>
+  </changeSet>
+</databaseChangeLog>

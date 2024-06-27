@@ -66,3 +66,8 @@ Example call: `de.adito.LiquibaseExtendedCli convert --format YAML "C:\dev\proje
 This will write directly to the given path.
 
 **NOTE:** You should always check the created files for any errors.
+
+##### Known issues
+
+* YAML and JSON files with `preConditions` will produce invalid results ([Liquibase Issue #4379](https://github.com/liquibase/liquibase/issues/4379))
+

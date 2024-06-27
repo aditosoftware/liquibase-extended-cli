@@ -1,0 +1,26 @@
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <include file="XML.xml"/>
+
+  <include
+      file="JSON.json"
+      context="bar"
+      errorIfMissing="false"
+      ignore="false"
+      labels="baz"
+      relativeToChangelogFile="false"
+  />
+
+  <include
+      context="bar"
+      errorIfMissing="false"
+      ignore="false"
+      file="YAML.yaml"
+      labels="baz"
+      relativeToChangelogFile="false"
+  />
+</databaseChangeLog>

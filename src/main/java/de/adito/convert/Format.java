@@ -27,12 +27,34 @@ public enum Format
   /**
    * Checks if the given extension is a valid format.
    *
-   * @param pExtension the given extension without a dot.
+   * @param pExtension the given extension without a dot
    * @return {@code true}, when the format is a valid format for converting, otherwise {@code false}
    */
   public static boolean isValidFormat(@NonNull String pExtension)
   {
-    String normalizedExtension = "." + pExtension;
+    String normalizedExtension = getNormalizedExtension(pExtension);
     return Arrays.stream(Format.values()).map(Format::getFileEnding).anyMatch(normalizedExtension::equals);
+  }
+
+  /**
+   * Checks if the given extension is equals to the file ending.
+   *
+   * @param pExtension the given extension without a dot
+   * @return {@code true}, if the file ending of the current format is equals to the extension.
+   */
+  public boolean isTargetFormat(@NonNull String pExtension)
+  {
+    return fileEnding.equals(getNormalizedExtension(pExtension));
+  }
+
+  /**
+   * Normalizes the extension for this class.
+   *
+   * @param pExtension the given extension without a dot
+   * @return the extension with a dot
+   */
+  private static @NonNull String getNormalizedExtension(@NonNull String pExtension)
+  {
+    return "." + pExtension;
   }
 }

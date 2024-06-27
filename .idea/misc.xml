@@ -12,14 +12,15 @@
       <item index="7" class="java.lang.String" itemvalue="picocli.CommandLine.Command" />
     </list>
     <writeAnnotations>
+      <writeAnnotation name="com.google.gson.annotations.Expose" />
+      <writeAnnotation name="de.adito.designer.services.transpile.MemoryFileSystemProvider.MemoryTempDir" />
+      <writeAnnotation name="io.quarkus.test.InjectMock" />
+      <writeAnnotation name="io.quarkus.test.junit.mockito.InjectSpy" />
       <writeAnnotation name="jakarta.inject.Inject" />
       <writeAnnotation name="picocli.CommandLine.Command" />
       <writeAnnotation name="picocli.CommandLine.Option" />
       <writeAnnotation name="picocli.CommandLine.Parameters" />
-      <writeAnnotation name="com.google.gson.annotations.Expose" />
-      <writeAnnotation name="io.quarkus.test.InjectMock" />
-      <writeAnnotation name="io.quarkus.test.junit.mockito.InjectSpy" />
-      <writeAnnotation name="de.adito.designer.services.transpile.MemoryFileSystemProvider.MemoryTempDir" />
+      <writeAnnotation name="picocli.CommandLine.Spec" />
     </writeAnnotations>
   </component>
   <component name="ExternalStorageConfigurationManager" enabled="true" />
@@ -29,7 +30,6 @@
         <option value="$PROJECT_DIR$/pom.xml" />
       </list>
     </option>
-    <option name="workspaceImportForciblyTurnedOn" value="true" />
   </component>
   <component name="NullableNotNullManager">
     <option name="myDefaultNullable" value="org.jetbrains.annotations.Nullable" />
