@@ -14,4 +14,4 @@ databaseChangeLog:
       ignore: false
       file: JSON.json
       labels: bar
-      relativeToChangelogFile: false
+      relativeToChangelogFile: true

@@ -2,15 +2,22 @@ package de.adito;
 
 import lombok.*;
 import org.assertj.core.api.AbstractStringAssert;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.function.Executable;
+import org.mockito.*;
 
-import java.nio.file.Path;
+import java.net.URL;
+import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.atomic.*;
+import java.util.function.Consumer;
+import java.util.logging.*;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 /**
  * Util class for testing the CLI methods.
@@ -20,6 +27,27 @@ import static org.junit.jupiter.api.Assertions.*;
 @NoArgsConstructor
 public class CliTestUtils
 {
+
+  private static final ClassLoader classLoader = CliTestUtils.class.getClassLoader();
+  private static final String packageName = CliTestUtils.class.getPackageName().replace('.', '/');
+
+
+  /**
+   * Loads a resource in the {@code de.adito} package.
+   *
+   * @param pName the name where the resource is located inside {@code de/adito} folders
+   * @return the loaded resource as path
+   */
+  @SneakyThrows
+  @NonNull
+  public static Path loadResource(@NonNull String pName)
+  {
+    String resourceToLoad = packageName + "/" + pName;
+    URL url = classLoader.getResource(resourceToLoad);
+    assertNotNull(url, "url for " + resourceToLoad + " should be there");
+    return Paths.get(url.toURI());
+  }
+
 
   /**
    * Calls the CLI with the given arguments.
@@ -35,7 +63,6 @@ public class CliTestUtils
     AtomicReference<String> outText = new AtomicReference<>("");
     AtomicReference<String> errText = new AtomicReference<>("");
     AtomicInteger errorCode = new AtomicInteger(-1);
-
 
     errText.set(tapSystemErr(() -> outText.set(tapSystemOut(() -> errorCode.set(catchSystemExit(() -> LiquibaseExtendedCli.main(args)))))));
 
@@ -74,7 +101,8 @@ public class CliTestUtils
             outText.isEmpty();
           else
             outText.contains(pExpectedCallResults.outTexts);
-        }));
+        }
+    ));
 
     // only add check for file existence, if files were given
     if (!pExpectedCallResults.expectedFiles.isEmpty())

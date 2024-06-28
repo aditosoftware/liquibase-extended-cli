@@ -6,6 +6,7 @@ import liquibase.parser.*;
 import liquibase.resource.*;
 import liquibase.serializer.*;
 import lombok.*;
+import lombok.extern.java.Log;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import picocli.CommandLine;
@@ -17,6 +18,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.function.Predicate;
+import java.util.logging.*;
 import java.util.stream.*;
 
 /**
@@ -32,9 +34,9 @@ import java.util.stream.*;
         "3:Partial successful programm execution (check output afterwards)"
     })
 @NoArgsConstructor
+@Log
 public class FormatConverter implements Callable<Integer>
 {
-
 
   @Option(names = {"-f", "--format"}, description = "The format you want to convert to. Valid values: ${COMPLETION-CANDIDATES}",
       required = true)
@@ -57,14 +59,16 @@ public class FormatConverter implements Callable<Integer>
    */
   private final Set<Path> errorFiles = new HashSet<>();
 
-
-  private final Set<Path> includeFiles = new HashSet<>();
-  private final Map<Path, Path> filesHandled = new HashMap<>();
-
+  /**
+   * The handler for the include files.
+   */
+  private final IncludeHandler includeHandler = new IncludeHandler();
 
   @Override
   public Integer call() throws Exception
   {
+    log.addHandler(new ConsoleHandler());
+
     if (format == Format.SQL && StringUtils.isBlank(databaseType))
     {
       throw new ParameterException(spec.commandLine(), "Option '--database-type' is required, when format SQL is given");
@@ -86,7 +90,7 @@ public class FormatConverter implements Callable<Integer>
     }
 
     // handles the includes after all files were transformed
-    if (!includeFiles.isEmpty())
+    if (!includeHandler.getIncludeFiles().isEmpty())
       handleIncludes();
 
     if (errorFiles.isEmpty())
@@ -105,28 +109,22 @@ public class FormatConverter implements Callable<Integer>
    */
   private void handleIncludes()
   {
-    for (Path includeFile : includeFiles)
+
+    for (Path includeFile : includeHandler.getIncludeFiles())
     {
       try
       {
         System.out.printf("Handling file '%s' with includes%n", relativizeInput(includeFile));
 
-
-        new IncludeHandler(output, input, filesHandled, includeFile, generateNewFileName(includeFile, false)).handleIncludes();
-
+        includeHandler.handleIncludes(input, includeFile, generateNewFileName(includeFile, false));
       }
-      catch (IOException pE)
+      catch (Exception pE)
       {
-        // todo error handling ist sehr identisch überall
+        log.log(Level.WARNING, String.format("error while handling file with includes '%s' to format %s", includeFile, format), pE);
         errorFiles.add(includeFile);
-        System.err.printf("error handling file with includes '%s' to format %s: %s%n", includeFile, format, pE.getMessage());
-        pE.printStackTrace(System.err);
         copyOldFile(includeFile);
       }
-
     }
-
-
   }
 
 
@@ -146,18 +144,16 @@ public class FormatConverter implements Callable<Integer>
 
       copyOldFile(pPathToConvert);
     }
-    else if (IncludeHandler.checkForIncludes(pPathToConvert))
+    else if (includeHandler.checkForIncludes(pPathToConvert))
     {
       // file with include will be handled after all other files, save for later
-      includeFiles.add(pPathToConvert);
+      includeHandler.getIncludeFiles().add(pPathToConvert);
     }
     else
     {
       // valid file format, convert it
       System.out.printf("Converting changeset '%s'%n", relativizeInput(pPathToConvert));
-
-      // TODO: wenn include / includeAll da ist, diese Dateien einfach so wie sie ist rüberkopieren
-
+      
       try (ResourceAccessor resourceAccessor = new DirectoryResourceAccessor(pPathToConvert.getParent()))
       {
         Path fileName = pPathToConvert.getFileName();
@@ -175,14 +171,13 @@ public class FormatConverter implements Callable<Integer>
           // and then write them
           serializer.write(changeLog.getChangeSets(), outputStream);
 
-          this.filesHandled.put(pPathToConvert, newFilePath);
+          includeHandler.addConvertedFile(pPathToConvert, newFilePath);
         }
       }
       catch (Exception pE)
       {
+        log.log(Level.WARNING, String.format("error converting file '%s' to format %s", pPathToConvert, format), pE);
         errorFiles.add(pPathToConvert);
-        System.err.printf("error converting file '%s' to format %s: %s%n", pPathToConvert, format, pE.getMessage());
-        pE.printStackTrace(System.err);
         copyOldFile(pPathToConvert);
       }
     }
@@ -201,15 +196,11 @@ public class FormatConverter implements Callable<Integer>
       Path newFile = generateNewFileName(pOldFile, false);
 
       Files.copy(pOldFile, newFile, StandardCopyOption.REPLACE_EXISTING);
-
-      this.filesHandled.put(pOldFile, newFile);
     }
     catch (IOException pE)
     {
-      // FIXME hier das programm verlassen oder weitermachen, wenn das kopieren scheitert?
-      // FIXME file to errorFiles hinzufügen
-      System.err.printf("error copying file '%s' to new target dir: %s%n", pOldFile, pE.getMessage());
-      pE.printStackTrace(System.err);
+      // TODO hier anders mit dem Fehler verfahren?
+      log.log(Level.SEVERE, String.format("error copying file '%s' to new target dir", pOldFile), pE);
     }
   }
 

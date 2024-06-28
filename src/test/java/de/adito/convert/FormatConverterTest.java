@@ -1,5 +1,6 @@
 package de.adito.convert;
 
+import de.adito.CliTestUtils;
 import liquibase.Scope;
 import liquibase.changelog.ChangeLogParameters;
 import liquibase.command.*;
@@ -17,15 +18,15 @@ import org.junit.jupiter.params.provider.*;
 import org.mockito.MockedStatic;
 
 import java.io.*;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.function.*;
+import java.util.logging.Level;
 import java.util.stream.*;
 
 import static de.adito.CliTestUtils.*;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -39,16 +40,11 @@ class FormatConverterTest
 
   // TODO Dateien mit includes lösen sich automatisch auf. Also kein includes mehr da, sondern der Inhalt der Includes!
 
-  private static final ClassLoader classLoader = FormatConverterTest.class.getClassLoader();
-  private static final String packageName = FormatConverterTest.class.getPackageName().replace('.', '/');
-
-
   @TempDir(cleanup = CleanupMode.ALWAYS)
   private Path outputDir;
 
   private final Function<String, String> convertText = (pPath) -> "Converting changeset '" + pPath + "'";
   private final Function<String, String> copyText = (pPath) -> "Copying file '" + pPath + "' to new location";
-
 
   /**
    * Tests the copying of files
@@ -70,7 +66,7 @@ class FormatConverterTest
           ExpectedCallResults.builder()
               .errorCode(3)
               .outText("Converting changeset '" + fileName + "'")
-              .errText("error converting file '" + changelog + "' to format YAML")
+              .errText("WARNING: error converting file '" + changelog + "' to format YAML")
               .expectedFile(outputDir.resolve(fileName))
               .additionalAssert(() -> assertThat(outputDir.resolve("invalid.yaml")).as("new file should not be there").doesNotExist())
               .build(),
@@ -132,7 +128,7 @@ class FormatConverterTest
             ExpectedCallResults.builder()
                 .errorCode(0)
                 .outText("Copying file '" + input.getFileName() + "' to new location")
-                .errText("error copying file '" + input + "' to new target dir: my message")
+                .errText("error copying file '" + input + "' to new target dir")
                 .additionalAssert(() -> assertThat(outputDir.resolve(input.getFileName())).as("file was not copied").doesNotExist())
                 .build(),
             "convert", "--format", Format.XML.name(), input.toString(), outputDir.toFile().getAbsolutePath());
@@ -332,9 +328,7 @@ class FormatConverterTest
     @SneakyThrows
     void shouldWorkWithFolder(@NonNull Format pFormat)
     {
-      URL url = classLoader.getResource(packageName);
-      assertNotNull(url, "url should be there");
-      Path inputForFiles = Paths.get(url.toURI());
+      Path inputForFiles = CliTestUtils.loadResource("convert");
 
 
       Path input = outputDir.resolve("input");
@@ -500,6 +494,51 @@ class FormatConverterTest
 
     // TODO Alle Tests auch mit JSON und YAML machen
 
+    /**
+     * Tests that errors while checking for includes are detected.
+     */
+    @Test
+    @SneakyThrows
+    void shouldHandleErrorsWhileCheckingForIncludes()
+    {
+      Path file = getPathForFormat(Format.XML);
+
+      try (MockedStatic<Files> filesMockedStatic = mockStatic(Files.class, CALLS_REAL_METHODS))
+      {
+        filesMockedStatic.when(() -> Files.readString(file, StandardCharsets.UTF_8)).thenThrow(IOException.class);
+
+        assertCall(
+            ExpectedCallResults.builder()
+                .errorCode(0)
+                .outText("Converting changeset 'XML.xml'")
+                .errText("WARNING: error reading file for reading includes in file '" + file + "'")
+                .build(),
+            "convert", "--format", Format.YAML.name(), file.toString(), outputDir.toFile().getAbsolutePath());
+      }
+    }
+
+
+    /**
+     * Tests that an error during the handling of includes does work.
+     */
+    @Test
+    @SneakyThrows
+    void shouldHandleErrorsWhileConvertingIncludeFile()
+    {
+      Path input = outputDir.resolve("input");
+      Files.createDirectories(input);
+
+      Path file = input.resolve("foo.xml");
+      Files.writeString(file, "<include");
+
+      assertCall(
+          ExpectedCallResults.builder()
+              .errorCode(3)
+              .outText("Handling file 'input" + File.separatorChar + "foo.xml' with includes")
+              .errText("WARNING: error while handling file with includes '" + file + "' to format YAML")
+              .build(),
+          "convert", "--format", Format.YAML.name(), input.toString(), outputDir.toFile().getAbsolutePath());
+    }
 
     /**
      * @return the arguments for {@link #shouldHandleFileWithInclude(List, List, Format, Format)}
@@ -507,12 +546,37 @@ class FormatConverterTest
     private Stream<Arguments> shouldHandleFileWithInclude()
     {
       return formatForIncludes.get().flatMap(pFormat -> {
-        List<Arguments> xml = List.of(Arguments.of(List.of("<include file=\"XML.xml\"/>", "file=\"JSON.json\"", "file=\"YAML.yaml\""), List.of(), pFormat, Format.XML),
-                                      Arguments.of(List.of("<include file=\"XML" + pFormat.getFileEnding() + "\"/>", "file=\"JSON.json\"", "file=\"YAML.yaml\""), List.of(Format.XML), pFormat, Format.XML),
-                                      Arguments.of(List.of("<include file=\"XML.xml\"/>", "file=\"JSON" + pFormat.getFileEnding() + "\"", "file=\"YAML.yaml\""), List.of(Format.JSON), pFormat, Format.XML),
-                                      Arguments.of(List.of("<include file=\"XML.xml\"/>", "file=\"JSON.json\"", "file=\"YAML" + pFormat.getFileEnding() + "\""), List.of(Format.YAML), pFormat, Format.XML),
-                                      Arguments.of(List.of("<include file=\"XML" + pFormat.getFileEnding() + "\"/>", "file=\"JSON" + pFormat.getFileEnding() + "\"", "file=\"YAML" + pFormat.getFileEnding() + "\""),
-                                                   List.of(Format.XML, Format.JSON, Format.YAML), pFormat, Format.XML));
+        List<Arguments> xml = List.of(
+            Arguments.of(
+                List.of(
+                    "<include file=\"XML.xml\"/>",
+                    "<include context=\"bar\" errorIfMissing=\"false\" file=\"JSON.json\" ignore=\"false\" labels=\"baz\" relativeToChangelogFile=\"false\"/>",
+                    "<include context=\"bar\" errorIfMissing=\"false\" file=\"YAML.yaml\" ignore=\"false\" labels=\"baz\" relativeToChangelogFile=\"true\"/>"),
+                List.of(), pFormat, Format.XML),
+            Arguments.of(
+                List.of(
+                    "<include file=\"XML" + pFormat.getFileEnding() + "\"/>",
+                    "<include context=\"bar\" errorIfMissing=\"false\" file=\"JSON.json\" ignore=\"false\" labels=\"baz\" relativeToChangelogFile=\"false\"/>",
+                    "<include context=\"bar\" errorIfMissing=\"false\" file=\"YAML.yaml\" ignore=\"false\" labels=\"baz\" relativeToChangelogFile=\"true\"/>"
+                ), List.of(Format.XML), pFormat, Format.XML),
+            Arguments.of(
+                List.of(
+                    "<include file=\"XML.xml\"/>",
+                    "<include context=\"bar\" errorIfMissing=\"false\" file=\"JSON" + pFormat.getFileEnding() + "\" ignore=\"false\" labels=\"baz\" relativeToChangelogFile=\"false\"/>",
+                    "<include context=\"bar\" errorIfMissing=\"false\" file=\"YAML.yaml\" ignore=\"false\" labels=\"baz\" relativeToChangelogFile=\"true\"/>"
+                ), List.of(Format.JSON), pFormat, Format.XML),
+            Arguments.of(
+                List.of(
+                    "<include file=\"XML.xml\"/>",
+                    "<include context=\"bar\" errorIfMissing=\"false\" file=\"JSON.json\" ignore=\"false\" labels=\"baz\" relativeToChangelogFile=\"false\"/>",
+                    "<include context=\"bar\" errorIfMissing=\"false\" file=\"YAML" + pFormat.getFileEnding() + "\" ignore=\"false\" labels=\"baz\" relativeToChangelogFile=\"true\"/>"
+                ), List.of(Format.YAML), pFormat, Format.XML),
+            Arguments.of(
+                List.of(
+                    "<include file=\"XML" + pFormat.getFileEnding() + "\"/>",
+                    "<include context=\"bar\" errorIfMissing=\"false\" file=\"JSON" + pFormat.getFileEnding() + "\" ignore=\"false\" labels=\"baz\" relativeToChangelogFile=\"false\"/>",
+                    "<include context=\"bar\" errorIfMissing=\"false\" file=\"YAML" + pFormat.getFileEnding() + "\" ignore=\"false\" labels=\"baz\" relativeToChangelogFile=\"true\"/>"
+                ), List.of(Format.XML, Format.JSON, Format.YAML), pFormat, Format.XML));
 
 
         List<Arguments> json = List.of(
@@ -581,6 +645,172 @@ class FormatConverterTest
 
           "convert", "--format", pFormatToConvertTo.name(), preparedIncludes.inputDirectory.toString(), outputDir.toFile().getAbsolutePath());
     }
+
+
+    /**
+     * @return the arguments for {@link #shouldConvertNestedChangelog(Format, ArgumentsForNestedChangelogs)}
+     */
+    private Stream<Arguments> shouldConvertNestedChangelog()
+    {
+      ArgumentsForNestedChangelogs xml = new ArgumentsForNestedChangelogs(
+          Format.XML, CliTestUtils.loadResource("context/xml/"),
+          List.of(
+              "Converting changeset 'xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.xml'",
+              "Converting changeset 'xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.xml'",
+              "Converting changeset 'xml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog1.xml'",
+              "Converting changeset 'xml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog2.xml'",
+              "Converting changeset 'xml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog1.xml'",
+              "Converting changeset 'xml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog2.xml'",
+              "Converting changeset 'xml" + File.separatorChar + "example-changelog.xml'",
+              "Converting changeset 'xml" + File.separatorChar + "noContext-changelog.xml'",
+              "Converting changeset 'xml" + File.separatorChar + "three-changelogs.xml'",
+              "Converting changeset 'xml" + File.separatorChar + "utf8-changelog.xml'",
+              "Handling file 'xml" + File.separatorChar + "nested-changelog.xml' with includes",
+              "Handling file 'xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.xml' with includes"
+          ),
+          pFormat -> new String[]{"<include context=\"xml-junit\" file=\"changelogs/changelog1" + pFormat.getFileEnding() + "\" relativeToChangelogFile=\"true\"/>",
+                                  "<include context=\"xml-junit\" file=\"changelogs/changelog2" + pFormat.getFileEnding() + "\" relativeToChangelogFile=\"true\"/>",
+                                  "<include context=\"xml-junit\" file=\"changelogs/changelog3.xml\" relativeToChangelogFile=\"true\"/>"},
+          pFormat -> new String[]{"<includeAll context=\"xml-v1\" path=\"version1\" relativeToChangelogFile=\"true\"/>",
+                                  "<include context=\"xml-v2\" file=\"version2/v2changelog1" + pFormat.getFileEnding() + "\" relativeToChangelogFile=\"true\"/>",
+                                  "<include context=\"xml-v2\" file=\"version2/v2changelog2" + pFormat.getFileEnding() + "\" relativeToChangelogFile=\"true\"/>"}
+      );
+
+      ArgumentsForNestedChangelogs yaml = new ArgumentsForNestedChangelogs(
+          Format.YAML, CliTestUtils.loadResource("context/yaml/"),
+          List.of(
+              "Converting changeset 'yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.yaml'",
+              "Converting changeset 'yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.yaml'",
+              "Converting changeset 'yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog1.yaml'",
+              "Converting changeset 'yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog2.yaml'",
+              "Converting changeset 'yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog1.yaml'",
+              "Converting changeset 'yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog2.yaml'",
+              "Converting changeset 'yaml" + File.separatorChar + "example-changelog.yaml'",
+              "Converting changeset 'yaml" + File.separatorChar + "noContext-changelog.yaml'",
+              "Converting changeset 'yaml" + File.separatorChar + "three-changelogs.yaml'",
+              "Converting changeset 'yaml" + File.separatorChar + "utf8-changelog.yaml'",
+              "Handling file 'yaml" + File.separatorChar + "nested-changelog.yaml' with includes",
+              "Handling file 'yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.yaml' with includes"),
+          pFormat -> new String[]{"file: changelogs/changelog1" + pFormat.getFileEnding(),
+                                  "file: changelogs/changelog2" + pFormat.getFileEnding(),
+                                  "file: changelogs/changelog3.yaml"},
+          pFormat -> new String[]{"file: version2/v2changelog1" + pFormat.getFileEnding(), "file: version2/v2changelog2" + pFormat.getFileEnding()}
+      );
+
+
+      ArgumentsForNestedChangelogs json = new ArgumentsForNestedChangelogs(
+          Format.JSON, CliTestUtils.loadResource("context/json/"),
+          List.of(
+              "Converting changeset 'json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.json'",
+              "Converting changeset 'json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.json'",
+              "Converting changeset 'json" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog1.json'",
+              "Converting changeset 'json" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog2.json'",
+              "Converting changeset 'json" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog1.json'",
+              "Converting changeset 'json" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog2.json'",
+              "Converting changeset 'json" + File.separatorChar + "example-changelog.json'",
+              "Converting changeset 'json" + File.separatorChar + "noContext-changelog.json'",
+              "Converting changeset 'json" + File.separatorChar + "three-changelogs.json'",
+              "Converting changeset 'json" + File.separatorChar + "utf8-changelog.json'",
+              "Handling file 'json" + File.separatorChar + "nested-changelog.json' with includes",
+              "Handling file 'json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.json' with includes"),
+          pFormat -> new String[]{"\"file\": \"changelogs/changelog1" + pFormat.getFileEnding() + "\",",
+                                  "\"file\": \"changelogs/changelog2" + pFormat.getFileEnding() + "\",",
+                                  "\"file\": \"changelogs/changelog3.json\","},
+          pFormat -> new String[]{"\"file\": \"version2/v2changelog1" + pFormat.getFileEnding() + "\",",
+                                  "\"file\": \"version2/v2changelog2" + pFormat.getFileEnding() + "\","}
+      );
+
+      return Stream.of(xml, yaml, json)
+          .flatMap(pArgumentsForNestedChangelogs -> formatForIncludes.get()
+              .filter(pFormat -> pFormat != pArgumentsForNestedChangelogs.baseFormat)
+              .map(pFormat -> Arguments.of(pFormat, pArgumentsForNestedChangelogs)
+              ));
+    }
+
+    /**
+     * Tests that the converting of nested changelogs works.
+     *
+     * @param pFormat                       the format in which it should be converted
+     * @param pArgumentsForNestedChangelogs contains the folder and the expected logs and content of the files
+     */
+    @ParameterizedTest
+    @MethodSource
+    @SneakyThrows
+    void shouldConvertNestedChangelog(@NonNull Format pFormat, @NonNull ArgumentsForNestedChangelogs pArgumentsForNestedChangelogs)
+    {
+      assertCall(
+          ExpectedCallResults.builder()
+              .errorCode(0)
+              .outTexts(pArgumentsForNestedChangelogs.outText)
+              .additionalAsserts(List.of(
+                  () -> {
+                    Path nestedChangelog = outputDir.resolve("nested-changelog" + pArgumentsForNestedChangelogs.baseFormat.getFileEnding());
+                    assertThat(nestedChangelog).as("nested changelog should exist").exists();
+                    List<String> content = Files.readAllLines(nestedChangelog, StandardCharsets.UTF_8)
+                        .stream().map(String::trim)
+                        .collect(Collectors.toList());
+
+                    assertThat(content).as("nested changelog")
+                        .contains(pArgumentsForNestedChangelogs.nestedChangelogLines.apply(pFormat));
+                  }, () -> {
+                    Path changelog3 = outputDir.resolve("changelogs").resolve("changelog3" + pArgumentsForNestedChangelogs.baseFormat.getFileEnding());
+                    assertThat(changelog3).as("changelog3 should exist").exists();
+
+                    List<String> content = Files.readAllLines(changelog3, StandardCharsets.UTF_8)
+                        .stream().map(String::trim)
+                        .collect(Collectors.toList());
+
+                    assertThat(content).as("changelog3 in subfolder")
+                        .contains(pArgumentsForNestedChangelogs.changelog3Lines.apply(pFormat));
+                  }))
+              .build(),
+
+          "convert", "--format", pFormat.name(), pArgumentsForNestedChangelogs.folder.toString(), outputDir.toFile().getAbsolutePath());
+    }
+
+    /**
+     * The arguments for the nested changelogs.
+     */
+    @AllArgsConstructor
+    class ArgumentsForNestedChangelogs
+    {
+      /**
+       * The basic format in which all the files are.
+       */
+      @NonNull
+      private Format baseFormat;
+
+      /**
+       * The path to the folder in which all the changelogs are located
+       */
+      @NonNull
+      private Path folder;
+
+      /**
+       * The expected list of text written to {@code System.out}
+       */
+      @NonNull
+      private List<String> outText;
+
+      /**
+       * Creates the expected lines that should be in the nested-changelog file.
+       */
+      @NonNull
+      private Function<Format, String[]> nestedChangelogLines;
+
+      /**
+       * Creates the expected lines that should be in the changelog3 file.
+       */
+      @NonNull
+      private Function<Format, String[]> changelog3Lines;
+
+      @Override
+      public String toString()
+      {
+        return "ArgumentsForNestedChangelogs{" + "baseFormat=" + baseFormat + '}';
+      }
+    }
+
 
     /**
      * Prepares the files for an include test
@@ -766,9 +996,7 @@ class FormatConverterTest
   private Path getPathForFormat(@NonNull Format pFormat, @Nullable String pSuffix)
   {
     String fileName = createFileName(pFormat, pSuffix);
-    URL url = classLoader.getResource(packageName + "/" + fileName);
-    assertNotNull(url, "url for " + pFormat + " and name " + fileName + " should be there");
-    return Paths.get(url.toURI());
+    return CliTestUtils.loadResource("convert/" + fileName);
   }
 
   /**

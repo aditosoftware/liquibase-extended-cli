@@ -22,7 +22,7 @@
         "file": "YAML.yaml",
         "ignore": false,
         "labels": "bar",
-        "relativeToChangelogFile": false
+        "relativeToChangelogFile": true
       }
     }
   ]

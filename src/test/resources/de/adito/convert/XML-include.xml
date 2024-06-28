@@ -6,21 +6,7 @@
 
   <include file="XML.xml"/>
 
-  <include
-      file="JSON.json"
-      context="bar"
-      errorIfMissing="false"
-      ignore="false"
-      labels="baz"
-      relativeToChangelogFile="false"
-  />
+  <include file="JSON.json" context="bar" errorIfMissing="false" ignore="false" labels="baz" relativeToChangelogFile="false"/>
 
-  <include
-      context="bar"
-      errorIfMissing="false"
-      ignore="false"
-      file="YAML.yaml"
-      labels="baz"
-      relativeToChangelogFile="false"
-  />
+  <include context="bar" errorIfMissing="false" ignore="false" file="YAML.yaml" labels="baz" relativeToChangelogFile="true"/>
 </databaseChangeLog>
