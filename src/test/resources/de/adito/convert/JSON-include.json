@@ -1,0 +1,29 @@
+{
+  "databaseChangeLog": [
+    {
+      "include": {
+        "file": "JSON.json"
+      }
+    },
+    {
+      "include": {
+        "file": "XML.xml",
+        "context": "foo",
+        "errorIfMissing": false,
+        "ignore": false,
+        "labels": "bar",
+        "relativeToChangelogFile": false
+      }
+    },
+    {
+      "include": {
+        "context": "foo",
+        "errorIfMissing": false,
+        "file": "YAML.yaml",
+        "ignore": false,
+        "labels": "bar",
+        "relativeToChangelogFile": true
+      }
+    }
+  ]
+}

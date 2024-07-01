@@ -15,7 +15,7 @@ jarFile="liquibase-extended-cli.jar"
 jarPath="target/"
 # the path to the folder in which the jar should be moved. Example of vscode-liquibase extension:
 # jarTargetPath="../vscode-liquibase/lib/"
-jarTargetPath="../liquibase/lib/"
+jarTargetPath="../vscode-liquibase/lib/"
 
 if test -z "$jarFile" || test -z "$jarPath" || test -z "$jarTargetPath"
 then

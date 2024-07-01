@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - include:
+      file: YAML.yaml
+  - include:
+      file: XML.xml
+      context: foo
+      errorIfMissing: true
+      ignore: false
+      labels: bar
+      relativeToChangelogFile: false
+  - include:
+      context: foo
+      errorIfMissing: true
+      ignore: false
+      file: JSON.json
+      labels: bar
+      relativeToChangelogFile: true
+  - include:
+      foo: bar

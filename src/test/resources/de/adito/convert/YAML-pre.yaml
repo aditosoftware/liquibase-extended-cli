@@ -1,0 +1,36 @@
+databaseChangeLog:
+  - preConditions:
+      - dbms:
+          type: oracle
+      - runningAs:
+          username: SYSTEM
+  - changeSet:
+      id: 1
+      author: Liquibase User
+      preConditions:
+        - onFail: WARN
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM example_table
+      changes:
+        - createTable:
+            tableName: example_table
+            columns:
+              - column:
+                  name: id
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: firstname
+                  type: varchar(50)
+              - column:
+                  name: lastname
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: state
+                  type: char(2)

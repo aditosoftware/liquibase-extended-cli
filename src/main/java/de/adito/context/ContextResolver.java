@@ -1,10 +1,11 @@
 package de.adito.context;
 
 import com.google.gson.Gson;
+import de.adito.util.ExistingPathConverter;
 import liquibase.Liquibase;
 import liquibase.database.Database;
 import liquibase.resource.DirectoryResourceAccessor;
-import picocli.CommandLine;
+import lombok.NoArgsConstructor;
 import picocli.CommandLine.*;
 
 import java.nio.file.Path;
@@ -18,12 +19,13 @@ import java.util.stream.*;
  */
 @Command(name = "context", description = "Resolves the context from a root changelog and all depending changelogs",
     version = "1.0.0", mixinStandardHelpOptions = true)
+@NoArgsConstructor
 public class ContextResolver implements Callable<Integer>
 {
   /**
    * The absolute path to the root changelog.
    */
-  @Parameters(index = "0", arity = "1", description = "The absolute path to the changelog")
+  @Parameters(index = "0", arity = "1", description = "The absolute path to the changelog", converter = ExistingPathConverter.class)
   private Path changelogFile;
 
   @Override
@@ -52,11 +54,5 @@ public class ContextResolver implements Callable<Integer>
       System.out.println(contexts);
       return 0;
     }
-  }
-
-  public static void main(String... args)
-  {
-    int exitCode = new CommandLine(new ContextResolver()).execute(args);
-    System.exit(exitCode);
   }
 }

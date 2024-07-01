@@ -1,7 +1,8 @@
 package de.adito.context;
 
-import com.github.stefanbirkner.systemlambda.SystemLambda;
 import com.google.gson.Gson;
+import de.adito.CliTestUtils;
+import de.adito.CliTestUtils.CallResults;
 import lombok.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -10,9 +11,10 @@ import org.junit.jupiter.params.provider.*;
 import java.io.File;
 import java.net.URL;
 import java.util.*;
-import java.util.concurrent.atomic.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.*;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -55,6 +57,7 @@ class ContextResolverTest
 
       URL sql = classLoader.getResource(packageName + "/sql");
       assertNotNull(sql, "sql");
+
 
       URL xml = classLoader.getResource(packageName + "/xml");
       assertNotNull(xml, "xml");
@@ -100,19 +103,12 @@ class ContextResolverTest
     @SneakyThrows
     void shouldResolveContext(@NonNull String pDisplayName, @NonNull List<String> pResult, @NonNull String pChangelogPath)
     {
-      AtomicInteger errorCode = new AtomicInteger(-1);
+      CallResults callResults = CliTestUtils.call("context", pChangelogPath);
 
-      // listen to the output from system.out and save it.
-      // no listening to system.err, because this has a lot of liquibase output, which we do not want to test
-      String outText = SystemLambda.tapSystemOut(() -> {
-        // execute the command and save the error code
-        errorCode.set(SystemLambda.catchSystemExit(() -> ContextResolver.main(pChangelogPath)));
-      });
-
-      String[] actual = new Gson().fromJson(outText.trim(), String[].class);
+      String[] actual = new Gson().fromJson(callResults.getOutText().trim(), String[].class);
 
       assertAll(
-          () -> assertEquals(0, errorCode.get(), pDisplayName + ": errorCode"),
+          () -> assertEquals(0, callResults.getErrorCode(), pDisplayName + ": errorCode"),
           () -> assertArrayEquals(pResult.toArray(String[]::new), actual, pDisplayName + ": out message")
       );
     }
@@ -132,7 +128,9 @@ class ContextResolverTest
     @SneakyThrows
     void shouldReturnExitCode2WhenNoParameterGiven()
     {
-      assertEquals(2, SystemLambda.catchSystemExit(ContextResolver::main));
+      CallResults callResults = CliTestUtils.call("context");
+
+      assertEquals(2, callResults.getErrorCode(), callResults.getErrText());
     }
 
     /**
@@ -142,7 +140,12 @@ class ContextResolverTest
     @SneakyThrows
     void shouldReturnExitCode1WhenNoValidFile()
     {
-      assertEquals(1, SystemLambda.catchSystemExit(() -> ContextResolver.main("no_valid_file")), "error code");
+      CallResults callResults = CliTestUtils.call("context", "no_valid_file");
+
+      assertAll(
+          () -> assertEquals(2, callResults.getErrorCode(), callResults.getErrText()),
+          () -> assertThat(callResults.getErrText()).contains("Specified file 'no_valid_file' does not exist")
+      );
     }
   }
 
