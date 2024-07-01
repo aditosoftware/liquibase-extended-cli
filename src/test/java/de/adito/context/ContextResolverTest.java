@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * @author r.hartinger, 01.02.2024
  */
-// TODO resourcen allgemeiner bewegen?
 class ContextResolverTest
 {
 

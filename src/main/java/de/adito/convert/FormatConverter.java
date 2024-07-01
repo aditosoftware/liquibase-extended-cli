@@ -7,6 +7,8 @@ import liquibase.resource.*;
 import liquibase.serializer.*;
 import lombok.*;
 import lombok.extern.java.Log;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import picocli.CommandLine;
@@ -57,7 +59,7 @@ public class FormatConverter implements Callable<Integer>
   /**
    * The files that could not be converted. These will be put out at the end of the command execution.
    */
-  private final Set<Path> errorFiles = new HashSet<>();
+  private final MultiValuedMap<Error, Path> errorFiles = new HashSetValuedHashMap<>();
 
   /**
    * The handler for the include files.
@@ -94,12 +96,23 @@ public class FormatConverter implements Callable<Integer>
       handleIncludes();
 
     if (errorFiles.isEmpty())
+      // no errors, everything was fine
       return 0;
     else
     {
-      System.err.println("Error converting " + errorFiles.size() + " file(s):\n" +
-                             errorFiles.stream().map(pPath -> " - " + pPath).collect(Collectors.joining("\n")) +
-                             "\nThese file(s) were copied to the new location.");
+      // otherwise, print out every error with their files
+      System.err.println("Error converting " + errorFiles.size() + " file(s):");
+
+      for (Map.Entry<Error, Collection<Path>> entry : errorFiles.asMap().entrySet())
+      {
+        Error error = entry.getKey();
+
+        System.err.println();
+        System.err.println(error.getErrText());
+        System.err.println(entry.getValue().stream().map(pPath -> " - " + pPath).collect(Collectors.joining("\n")));
+        System.err.println(error.getCopyText());
+      }
+
       return 3;
     }
   }
@@ -109,7 +122,6 @@ public class FormatConverter implements Callable<Integer>
    */
   private void handleIncludes()
   {
-
     for (Path includeFile : includeHandler.getIncludeFiles())
     {
       try
@@ -121,7 +133,7 @@ public class FormatConverter implements Callable<Integer>
       catch (Exception pE)
       {
         log.log(Level.WARNING, String.format("error while handling file with includes '%s' to format %s", includeFile, format), pE);
-        errorFiles.add(includeFile);
+        errorFiles.put(Error.HANDLING_INCLUDES, includeFile);
         copyOldFile(includeFile);
       }
     }
@@ -153,7 +165,7 @@ public class FormatConverter implements Callable<Integer>
     {
       // valid file format, convert it
       System.out.printf("Converting changeset '%s'%n", relativizeInput(pPathToConvert));
-      
+
       try (ResourceAccessor resourceAccessor = new DirectoryResourceAccessor(pPathToConvert.getParent()))
       {
         Path fileName = pPathToConvert.getFileName();
@@ -177,7 +189,7 @@ public class FormatConverter implements Callable<Integer>
       catch (Exception pE)
       {
         log.log(Level.WARNING, String.format("error converting file '%s' to format %s", pPathToConvert, format), pE);
-        errorFiles.add(pPathToConvert);
+        errorFiles.put(Error.CONVERTING_FILES, pPathToConvert);
         copyOldFile(pPathToConvert);
       }
     }
@@ -199,8 +211,8 @@ public class FormatConverter implements Callable<Integer>
     }
     catch (IOException pE)
     {
-      // TODO hier anders mit dem Fehler verfahren?
-      log.log(Level.SEVERE, String.format("error copying file '%s' to new target dir", pOldFile), pE);
+      errorFiles.put(Error.COPYING_FILES, pOldFile);
+      log.log(Level.WARNING, String.format("error copying file '%s' to new target dir", pOldFile), pE);
     }
   }
 

@@ -22,7 +22,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.function.*;
-import java.util.logging.Level;
 import java.util.stream.*;
 
 import static de.adito.CliTestUtils.*;
@@ -38,12 +37,17 @@ import static org.mockito.Mockito.*;
 class FormatConverterTest
 {
 
-  // TODO Dateien mit includes lösen sich automatisch auf. Also kein includes mehr da, sondern der Inhalt der Includes!
-
   @TempDir(cleanup = CleanupMode.ALWAYS)
   private Path outputDir;
 
+  /**
+   * Creates the text that is used for logging the converting of the changesets.
+   */
   private final Function<String, String> convertText = (pPath) -> "Converting changeset '" + pPath + "'";
+
+  /**
+   * Creates the text that is used for logging the copying of the changesets.
+   */
   private final Function<String, String> copyText = (pPath) -> "Copying file '" + pPath + "' to new location";
 
   /**
@@ -56,7 +60,6 @@ class FormatConverterTest
      * Tests that an error during the converting will be handled correctly.
      */
     @Test
-    @SneakyThrows
     void shouldHandleErrorDuringConverting()
     {
       String fileName = "invalid.xml";
@@ -65,8 +68,14 @@ class FormatConverterTest
       assertCall(
           ExpectedCallResults.builder()
               .errorCode(3)
-              .outText("Converting changeset '" + fileName + "'")
-              .errText("WARNING: error converting file '" + changelog + "' to format YAML")
+              .outText(convertText.apply(fileName))
+              .errTexts(List.of(
+                  "WARNING: error converting file '" + changelog + "' to format YAML",
+                  "Error converting 1 file(s):",
+                  "Error while converting files:",
+                  " - " + changelog,
+                  "These file(s) were copied to the new location."
+              ))
               .expectedFile(outputDir.resolve(fileName))
               .additionalAssert(() -> assertThat(outputDir.resolve("invalid.yaml")).as("new file should not be there").doesNotExist())
               .build(),
@@ -75,10 +84,48 @@ class FormatConverterTest
 
 
     /**
+     * Tests that the error handling works, when an invalid file was tried to convert and then the copy does fail
+     */
+
+    @Test
+    void shouldHandleErrorWhileCopyInvalidFiles()
+    {
+      String fileName = "invalid.xml";
+      Path changelog = createFileInDirInOutputDir(fileName);
+
+
+      try (MockedStatic<Files> filesMockedStatic = mockStatic(Files.class, CALLS_REAL_METHODS))
+      {
+        filesMockedStatic.when(() -> Files.copy(any(Path.class), any(), any())).thenThrow(new IOException("my message"));
+
+        assertCall(
+            ExpectedCallResults.builder()
+                .errorCode(3)
+                .outText(convertText.apply(changelog.getFileName().toString()))
+                .errTexts(List.of(
+                    "error copying file '" + changelog + "' to new target dir",
+                    "Error converting 2 file(s):",
+
+                    "Error while converting files:",
+                    " - " + changelog,
+                    "These file(s) were copied to the new location.",
+
+
+                    "Error while copying files:",
+                    " - " + changelog,
+                    "These file(s) were NOT copied to the new location."
+                ))
+                //.additionalAssert(() -> assertThat(outputDir.resolve(changelog.getFileName())).as("file was not copied").doesNotExist())
+                .build(),
+            "convert", "--format", Format.YAML.name(), changelog.toString(), outputDir.toFile().getAbsolutePath());
+      }
+    }
+
+
+    /**
      * Tests that a file from with a not supported extension, will be copied to the new location.
      */
     @Test
-    @SneakyThrows
     void shouldCopyInvalidFileExtensionToNewLocation()
     {
       String fileName = "notConverted.txt";
@@ -87,7 +134,7 @@ class FormatConverterTest
       assertCall(
           ExpectedCallResults.builder()
               .errorCode(0)
-              .outText("Copying file '" + fileName + "' to new location")
+              .outText(copyText.apply(fileName))
               .expectedFile(outputDir.resolve(fileName))
               .build(),
           "convert", "--format", Format.YAML.name(), txtFile.toString(), outputDir.toFile().getAbsolutePath());
@@ -97,7 +144,6 @@ class FormatConverterTest
      * Checks that a changelog that already has the format into which it is to be converted is not converted but copied.
      */
     @Test
-    @SneakyThrows
     void shouldCopyFileWithSameExtension()
     {
       Path input = getPathForFormat(Format.XML);
@@ -105,7 +151,7 @@ class FormatConverterTest
       assertCall(
           ExpectedCallResults.builder()
               .errorCode(0)
-              .outText("Copying file '" + input.getFileName() + "' to new location")
+              .outText(copyText.apply(input.getFileName().toString()))
               .expectedFile(outputDir.resolve(input.getFileName()))
               .build(),
           "convert", "--format", Format.XML.name(), input.toString(), outputDir.toFile().getAbsolutePath());
@@ -115,7 +161,6 @@ class FormatConverterTest
      * Tests that an error while copying is handled correctly.
      */
     @Test
-    @SneakyThrows
     void shouldHandleErrorWhileCopying()
     {
       Path input = getPathForFormat(Format.XML);
@@ -126,9 +171,15 @@ class FormatConverterTest
 
         assertCall(
             ExpectedCallResults.builder()
-                .errorCode(0)
-                .outText("Copying file '" + input.getFileName() + "' to new location")
-                .errText("error copying file '" + input + "' to new target dir")
+                .errorCode(3)
+                .outText(copyText.apply(input.getFileName().toString()))
+                .errTexts(List.of(
+                    "error copying file '" + input + "' to new target dir",
+                    "Error converting 1 file(s):",
+                    "Error while copying files:",
+                    " - " + input,
+                    "These file(s) were NOT copied to the new location."
+                ))
                 .additionalAssert(() -> assertThat(outputDir.resolve(input.getFileName())).as("file was not copied").doesNotExist())
                 .build(),
             "convert", "--format", Format.XML.name(), input.toString(), outputDir.toFile().getAbsolutePath());
@@ -164,7 +215,6 @@ class FormatConverterTest
      * Tests that a single xml file can be converted to yaml.
      */
     @Test
-    @SneakyThrows
     void shouldConvertSingleFileFromXmlToYaml()
     {
       Path input = getPathForFormat(Format.XML);
@@ -175,7 +225,7 @@ class FormatConverterTest
       assertCall(
           ExpectedCallResults.builder()
               .errorCode(0)
-              .outText("Converting changeset 'XML.xml'")
+              .outText(convertText.apply("XML.xml"))
               .expectedFile(expectedFile)
               .additionalAssert(() -> assertThat(expectedFile).as("content should be the same").hasSameTextualContentAs(expected))
               .build(),
@@ -201,7 +251,7 @@ class FormatConverterTest
       assertCall(
           ExpectedCallResults.builder()
               .errorCode(0)
-              .outText("Converting changeset 'changelog.xml'")
+              .outText(convertText.apply("changelog.xml"))
               .expectedFile(outputDir.resolve("changelog.mariadb.sql"))
               .additionalAssert(() -> assertThat(outputDir.resolve("changelog.xml")).as("old changelog is not there").doesNotExist())
               .build(),
@@ -240,7 +290,6 @@ class FormatConverterTest
      */
     @ParameterizedTest
     @MethodSource
-    @SneakyThrows
     void shouldTransformFileWithPreConditions(@NonNull Format pGivenFormat, @NonNull Format pToTransformFormat)
     {
       Path input = getPathForFormat(pGivenFormat, "pre");
@@ -250,7 +299,7 @@ class FormatConverterTest
       assertCall(
           ExpectedCallResults.builder()
               .errorCode(0)
-              .outText("Converting changeset '" + input.getFileName() + "'")
+              .outText(convertText.apply(input.getFileName().toString()))
               .expectedFile(expectedFile)
               .additionalAssert(() -> {
                 if (pToTransformFormat == Format.YAML || pToTransformFormat == Format.JSON)
@@ -267,7 +316,7 @@ class FormatConverterTest
     /**
      * @return the arguments for {@link #shouldConvertFromEveryFormatToEveryFormat(Format, Path, String, String)}
      */
-    @SneakyThrows
+
     private @NonNull Stream<Arguments> shouldConvertFromEveryFormatToEveryFormat()
     {
       Map<Format, Path> formats = new HashMap<>();
@@ -300,7 +349,6 @@ class FormatConverterTest
      */
     @ParameterizedTest
     @MethodSource
-    @SneakyThrows
     void shouldConvertFromEveryFormatToEveryFormat(@NonNull Format pFormat, @NonNull Path pInput, @NonNull String pExpectedFileName,
                                                    @NonNull String pExpectedOutText)
     {
@@ -482,23 +530,10 @@ class FormatConverterTest
         // includes are not possible in the community edition for SQL
         .filter(pGivenFormat -> pGivenFormat != Format.SQL);
 
-
-    // FIXME
-    //  includeAll rüberschieben ohne Änderung
-    //  includeAll endsWithFilter korrigieren
-    //  include file korrigieren, wenn file auch konvertiert wird
-    // TODO relativeToChangelogFile in includes
-
-    // TODO includes auf unterordner
-    // TODO includes im aktullen Ordner
-
-    // TODO Alle Tests auch mit JSON und YAML machen
-
     /**
      * Tests that errors while checking for includes are detected.
      */
     @Test
-    @SneakyThrows
     void shouldHandleErrorsWhileCheckingForIncludes()
     {
       Path file = getPathForFormat(Format.XML);
@@ -510,7 +545,7 @@ class FormatConverterTest
         assertCall(
             ExpectedCallResults.builder()
                 .errorCode(0)
-                .outText("Converting changeset 'XML.xml'")
+                .outText(convertText.apply("XML.xml"))
                 .errText("WARNING: error reading file for reading includes in file '" + file + "'")
                 .build(),
             "convert", "--format", Format.YAML.name(), file.toString(), outputDir.toFile().getAbsolutePath());
@@ -528,14 +563,34 @@ class FormatConverterTest
       Path input = outputDir.resolve("input");
       Files.createDirectories(input);
 
-      Path file = input.resolve("foo.xml");
-      Files.writeString(file, "<include");
+      // create multiple invalid files
+      List<Path> transformedFiles = IntStream.of(1, 2, 3)
+          .mapToObj(pCount -> {
+            Path file = input.resolve("foo" + pCount + ".xml");
+            assertDoesNotThrow(() -> Files.writeString(file, "<include"), "broken file " + file + " can be created");
+            return file;
+          })
+          .collect(Collectors.toList());
+
+
+      List<String> errTexts = transformedFiles.stream()
+          .flatMap(pPath -> Stream.of(" - " + pPath,
+                                      "WARNING: error while handling file with includes '" + pPath + "' to format YAML"))
+          .collect(Collectors.toList());
+      errTexts.add("Error converting 3 file(s):");
+      errTexts.add("Error while handling includes:");
+      errTexts.add("These file(s) were copied to the new location.");
+
 
       assertCall(
           ExpectedCallResults.builder()
               .errorCode(3)
-              .outText("Handling file 'input" + File.separatorChar + "foo.xml' with includes")
-              .errText("WARNING: error while handling file with includes '" + file + "' to format YAML")
+              .outTexts(
+                  transformedFiles.stream()
+                      .map(pPath -> input.getParent().relativize(pPath))
+                      .map(pPath -> "Handling file '" + pPath + "' with includes")
+                      .collect(Collectors.toList()))
+              .errTexts(errTexts)
               .build(),
           "convert", "--format", Format.YAML.name(), input.toString(), outputDir.toFile().getAbsolutePath());
     }
@@ -655,16 +710,16 @@ class FormatConverterTest
       ArgumentsForNestedChangelogs xml = new ArgumentsForNestedChangelogs(
           Format.XML, CliTestUtils.loadResource("context/xml/"),
           List.of(
-              "Converting changeset 'xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.xml'",
-              "Converting changeset 'xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.xml'",
-              "Converting changeset 'xml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog1.xml'",
-              "Converting changeset 'xml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog2.xml'",
-              "Converting changeset 'xml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog1.xml'",
-              "Converting changeset 'xml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog2.xml'",
-              "Converting changeset 'xml" + File.separatorChar + "example-changelog.xml'",
-              "Converting changeset 'xml" + File.separatorChar + "noContext-changelog.xml'",
-              "Converting changeset 'xml" + File.separatorChar + "three-changelogs.xml'",
-              "Converting changeset 'xml" + File.separatorChar + "utf8-changelog.xml'",
+              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.xml'"),
+              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.xml'"),
+              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog1.xml'"),
+              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog2.xml'"),
+              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog1.xml'"),
+              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog2.xml'"),
+              convertText.apply("xml" + File.separatorChar + "example-changelog.xml'"),
+              convertText.apply("xml" + File.separatorChar + "noContext-changelog.xml'"),
+              convertText.apply("xml" + File.separatorChar + "three-changelogs.xml'"),
+              convertText.apply("xml" + File.separatorChar + "utf8-changelog.xml'"),
               "Handling file 'xml" + File.separatorChar + "nested-changelog.xml' with includes",
               "Handling file 'xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.xml' with includes"
           ),
@@ -679,16 +734,16 @@ class FormatConverterTest
       ArgumentsForNestedChangelogs yaml = new ArgumentsForNestedChangelogs(
           Format.YAML, CliTestUtils.loadResource("context/yaml/"),
           List.of(
-              "Converting changeset 'yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.yaml'",
-              "Converting changeset 'yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.yaml'",
-              "Converting changeset 'yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog1.yaml'",
-              "Converting changeset 'yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog2.yaml'",
-              "Converting changeset 'yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog1.yaml'",
-              "Converting changeset 'yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog2.yaml'",
-              "Converting changeset 'yaml" + File.separatorChar + "example-changelog.yaml'",
-              "Converting changeset 'yaml" + File.separatorChar + "noContext-changelog.yaml'",
-              "Converting changeset 'yaml" + File.separatorChar + "three-changelogs.yaml'",
-              "Converting changeset 'yaml" + File.separatorChar + "utf8-changelog.yaml'",
+              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.yaml'"),
+              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.yaml'"),
+              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog1.yaml'"),
+              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog2.yaml'"),
+              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog1.yaml'"),
+              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog2.yaml'"),
+              convertText.apply("yaml" + File.separatorChar + "example-changelog.yaml'"),
+              convertText.apply("yaml" + File.separatorChar + "noContext-changelog.yaml'"),
+              convertText.apply("yaml" + File.separatorChar + "three-changelogs.yaml'"),
+              convertText.apply("yaml" + File.separatorChar + "utf8-changelog.yaml'"),
               "Handling file 'yaml" + File.separatorChar + "nested-changelog.yaml' with includes",
               "Handling file 'yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.yaml' with includes"),
           pFormat -> new String[]{"file: changelogs/changelog1" + pFormat.getFileEnding(),
@@ -701,16 +756,16 @@ class FormatConverterTest
       ArgumentsForNestedChangelogs json = new ArgumentsForNestedChangelogs(
           Format.JSON, CliTestUtils.loadResource("context/json/"),
           List.of(
-              "Converting changeset 'json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.json'",
-              "Converting changeset 'json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.json'",
-              "Converting changeset 'json" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog1.json'",
-              "Converting changeset 'json" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog2.json'",
-              "Converting changeset 'json" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog1.json'",
-              "Converting changeset 'json" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog2.json'",
-              "Converting changeset 'json" + File.separatorChar + "example-changelog.json'",
-              "Converting changeset 'json" + File.separatorChar + "noContext-changelog.json'",
-              "Converting changeset 'json" + File.separatorChar + "three-changelogs.json'",
-              "Converting changeset 'json" + File.separatorChar + "utf8-changelog.json'",
+              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.json'"),
+              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.json'"),
+              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog1.json'"),
+              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog2.json'"),
+              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog1.json'"),
+              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog2.json'"),
+              convertText.apply("json" + File.separatorChar + "example-changelog.json'"),
+              convertText.apply("json" + File.separatorChar + "noContext-changelog.json'"),
+              convertText.apply("json" + File.separatorChar + "three-changelogs.json'"),
+              convertText.apply("json" + File.separatorChar + "utf8-changelog.json'"),
               "Handling file 'json" + File.separatorChar + "nested-changelog.json' with includes",
               "Handling file 'json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.json' with includes"),
           pFormat -> new String[]{"\"file\": \"changelogs/changelog1" + pFormat.getFileEnding() + "\",",
@@ -735,7 +790,6 @@ class FormatConverterTest
      */
     @ParameterizedTest
     @MethodSource
-    @SneakyThrows
     void shouldConvertNestedChangelog(@NonNull Format pFormat, @NonNull ArgumentsForNestedChangelogs pArgumentsForNestedChangelogs)
     {
       assertCall(
@@ -883,7 +937,6 @@ class FormatConverterTest
      */
     @ParameterizedTest
     @MethodSource
-    @SneakyThrows
     void shouldHandleIncludesCorrectly(@NonNull Format pGivenFormat, @NonNull Format pToTransformFormat)
     {
       Path input = getPathForFormat(pGivenFormat, "include");
@@ -938,7 +991,6 @@ class FormatConverterTest
      */
     @ParameterizedTest
     @MethodSource
-    @SneakyThrows
     void shouldGiveCorrectErrorMessages(@NonNull String pExpectedMessage, String @NonNull [] pArgs)
     {
       assertCall(

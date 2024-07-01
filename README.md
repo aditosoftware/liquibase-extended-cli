@@ -69,5 +69,8 @@ This will write directly to the given path.
 
 ##### Known issues
 
+* Files with `include` / `includeAll` will not be transformed to the new format. This is due to the limitations of Liquibase. But all path given in
+  the `file` attribute will be transformed to a new path, if the old path was transformed as well.
+
 * YAML and JSON files with `preConditions` will produce invalid results ([Liquibase Issue #4379](https://github.com/liquibase/liquibase/issues/4379))
 
