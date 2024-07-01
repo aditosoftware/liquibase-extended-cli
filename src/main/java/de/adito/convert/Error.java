@@ -11,7 +11,7 @@ import lombok.*;
 @Getter
 public enum Error
 {
-  HANDLING_INCLUDES("Error while handling includes:", "These file(s) were copied to the new location."),
+  TRANSFORMING_INCLUDES("Error while transforming includes:", "These file(s) were copied to the new location."),
   CONVERTING_FILES("Error while converting files:", "These file(s) were copied to the new location."),
   COPYING_FILES("Error while copying files:", "These file(s) were NOT copied to the new location.");
 

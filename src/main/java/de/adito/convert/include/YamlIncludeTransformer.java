@@ -15,11 +15,11 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 /**
- * Handles the include in YAML files.
+ * Transforms the include in YAML files.
  *
  * @author r.hartinger, 27.06.2024
  */
-public class YamlIncludeHandler extends AbstractIncludeHandler
+class YamlIncludeTransformer extends AbstractIncludeTransformer
 {
   /**
    * The pattern for detecting {@code include} and {@code includeAll} in YAML files.

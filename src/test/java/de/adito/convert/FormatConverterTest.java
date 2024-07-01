@@ -51,6 +51,11 @@ class FormatConverterTest
   private final Function<String, String> copyText = (pPath) -> "Copying file '" + pPath + "' to new location";
 
   /**
+   * Creates the text that is used for logging the transforming of the changesets with includes.
+   */
+  private final Function<String, String> transformText = (pPath) -> "Transforming file '" + pPath + "' with includes";
+
+  /**
    * Tests the copying of files
    */
   @Nested
@@ -575,10 +580,10 @@ class FormatConverterTest
 
       List<String> errTexts = transformedFiles.stream()
           .flatMap(pPath -> Stream.of(" - " + pPath,
-                                      "WARNING: error while handling file with includes '" + pPath + "' to format YAML"))
+                                      "WARNING: error while transforming file with includes '" + pPath + "' to format YAML"))
           .collect(Collectors.toList());
       errTexts.add("Error converting 3 file(s):");
-      errTexts.add("Error while handling includes:");
+      errTexts.add("Error while transforming includes:");
       errTexts.add("These file(s) were copied to the new location.");
 
 
@@ -588,7 +593,8 @@ class FormatConverterTest
               .outTexts(
                   transformedFiles.stream()
                       .map(pPath -> input.getParent().relativize(pPath))
-                      .map(pPath -> "Handling file '" + pPath + "' with includes")
+                      .map(Path::toString)
+                      .map(transformText::apply)
                       .collect(Collectors.toList()))
               .errTexts(errTexts)
               .build(),
@@ -683,7 +689,7 @@ class FormatConverterTest
       assertCall(
           ExpectedCallResults.builder()
               .errorCode(0)
-              .outText("Handling file '" + preparedIncludes.inputDirectory.getParent().relativize(preparedIncludes.includeFile) + "' with includes")
+              .outText(transformText.apply(preparedIncludes.inputDirectory.getParent().relativize(preparedIncludes.includeFile).toString()))
               .expectedFile(expectedFile)
               .additionalAssert(
                   () -> {
@@ -710,18 +716,18 @@ class FormatConverterTest
       ArgumentsForNestedChangelogs xml = new ArgumentsForNestedChangelogs(
           Format.XML, CliTestUtils.loadResource("context/xml/"),
           List.of(
-              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.xml'"),
-              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.xml'"),
-              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog1.xml'"),
-              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog2.xml'"),
-              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog1.xml'"),
-              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog2.xml'"),
-              convertText.apply("xml" + File.separatorChar + "example-changelog.xml'"),
-              convertText.apply("xml" + File.separatorChar + "noContext-changelog.xml'"),
-              convertText.apply("xml" + File.separatorChar + "three-changelogs.xml'"),
-              convertText.apply("xml" + File.separatorChar + "utf8-changelog.xml'"),
-              "Handling file 'xml" + File.separatorChar + "nested-changelog.xml' with includes",
-              "Handling file 'xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.xml' with includes"
+              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.xml"),
+              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.xml"),
+              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog1.xml"),
+              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog2.xml"),
+              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog1.xml"),
+              convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog2.xml"),
+              convertText.apply("xml" + File.separatorChar + "example-changelog.xml"),
+              convertText.apply("xml" + File.separatorChar + "noContext-changelog.xml"),
+              convertText.apply("xml" + File.separatorChar + "three-changelogs.xml"),
+              convertText.apply("xml" + File.separatorChar + "utf8-changelog.xml"),
+              transformText.apply("xml" + File.separatorChar + "nested-changelog.xml"),
+              transformText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.xml")
           ),
           pFormat -> new String[]{"<include context=\"xml-junit\" file=\"changelogs/changelog1" + pFormat.getFileEnding() + "\" relativeToChangelogFile=\"true\"/>",
                                   "<include context=\"xml-junit\" file=\"changelogs/changelog2" + pFormat.getFileEnding() + "\" relativeToChangelogFile=\"true\"/>",
@@ -734,18 +740,18 @@ class FormatConverterTest
       ArgumentsForNestedChangelogs yaml = new ArgumentsForNestedChangelogs(
           Format.YAML, CliTestUtils.loadResource("context/yaml/"),
           List.of(
-              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.yaml'"),
-              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.yaml'"),
-              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog1.yaml'"),
-              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog2.yaml'"),
-              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog1.yaml'"),
-              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog2.yaml'"),
-              convertText.apply("yaml" + File.separatorChar + "example-changelog.yaml'"),
-              convertText.apply("yaml" + File.separatorChar + "noContext-changelog.yaml'"),
-              convertText.apply("yaml" + File.separatorChar + "three-changelogs.yaml'"),
-              convertText.apply("yaml" + File.separatorChar + "utf8-changelog.yaml'"),
-              "Handling file 'yaml" + File.separatorChar + "nested-changelog.yaml' with includes",
-              "Handling file 'yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.yaml' with includes"),
+              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.yaml"),
+              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.yaml"),
+              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog1.yaml"),
+              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog2.yaml"),
+              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog1.yaml"),
+              convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog2.yaml"),
+              convertText.apply("yaml" + File.separatorChar + "example-changelog.yaml"),
+              convertText.apply("yaml" + File.separatorChar + "noContext-changelog.yaml"),
+              convertText.apply("yaml" + File.separatorChar + "three-changelogs.yaml"),
+              convertText.apply("yaml" + File.separatorChar + "utf8-changelog.yaml"),
+              transformText.apply("yaml" + File.separatorChar + "nested-changelog.yaml"),
+              transformText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.yaml")),
           pFormat -> new String[]{"file: changelogs/changelog1" + pFormat.getFileEnding(),
                                   "file: changelogs/changelog2" + pFormat.getFileEnding(),
                                   "file: changelogs/changelog3.yaml"},
@@ -756,18 +762,19 @@ class FormatConverterTest
       ArgumentsForNestedChangelogs json = new ArgumentsForNestedChangelogs(
           Format.JSON, CliTestUtils.loadResource("context/json/"),
           List.of(
-              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.json'"),
-              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.json'"),
-              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog1.json'"),
-              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog2.json'"),
-              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog1.json'"),
-              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog2.json'"),
-              convertText.apply("json" + File.separatorChar + "example-changelog.json'"),
-              convertText.apply("json" + File.separatorChar + "noContext-changelog.json'"),
-              convertText.apply("json" + File.separatorChar + "three-changelogs.json'"),
-              convertText.apply("json" + File.separatorChar + "utf8-changelog.json'"),
-              "Handling file 'json" + File.separatorChar + "nested-changelog.json' with includes",
-              "Handling file 'json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.json' with includes"),
+              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.json"),
+              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.json"),
+              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog1.json"),
+              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "version1" + File.separatorChar + "v1changelog2.json"),
+              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog1.json"),
+              convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "version2" + File.separatorChar + "v2changelog2.json"),
+              convertText.apply("json" + File.separatorChar + "example-changelog.json"),
+              convertText.apply("json" + File.separatorChar + "noContext-changelog.json"),
+              convertText.apply("json" + File.separatorChar + "three-changelogs.json"),
+              convertText.apply("json" + File.separatorChar + "utf8-changelog.json"),
+              transformText.apply("json" + File.separatorChar + "nested-changelog.json"),
+              transformText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.json")
+          ),
           pFormat -> new String[]{"\"file\": \"changelogs/changelog1" + pFormat.getFileEnding() + "\",",
                                   "\"file\": \"changelogs/changelog2" + pFormat.getFileEnding() + "\",",
                                   "\"file\": \"changelogs/changelog3.json\","},
@@ -946,7 +953,7 @@ class FormatConverterTest
       assertCall(
           ExpectedCallResults.builder()
               .errorCode(0)
-              .outText("Handling file '" + input.getFileName() + "' with includes")
+              .outText(transformText.apply(input.getFileName().toString()))
               .expectedFile(expectedFile)
               .additionalAssert(
                   () -> assertThat(assertDoesNotThrow(() -> Files.readString(expectedFile, StandardCharsets.UTF_8)))

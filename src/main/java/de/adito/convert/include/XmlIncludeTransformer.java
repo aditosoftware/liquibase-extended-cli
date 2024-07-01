@@ -13,11 +13,11 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * Handles the includes in XML files
+ * Transforms the includes in XML files
  *
  * @author r.hartinger, 27.06.2024
  */
-public class XmlIncludeHandler extends AbstractIncludeHandler
+class XmlIncludeTransformer extends AbstractIncludeTransformer
 {
   /**
    * The pattern for detecting {@code include} and {@code includeAll} in XML files.

@@ -10,11 +10,11 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * Handles the includes in JSON files.
+ * Transforms the includes in JSON files.
  *
  * @author r.hartinger, 27.06.2024
  */
-public class JsonIncludeHandler extends AbstractIncludeHandler
+class JsonIncludeTransformer extends AbstractIncludeTransformer
 {
   /**
    * The pattern for detecting {@code include} and {@code includeAll} in JSON files.

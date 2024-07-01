@@ -1,5 +1,6 @@
 package de.adito.convert;
 
+import de.adito.convert.include.IncludeTransformer;
 import de.adito.util.*;
 import liquibase.changelog.*;
 import liquibase.parser.*;
@@ -62,20 +63,21 @@ public class FormatConverter implements Callable<Integer>
   private final MultiValuedMap<Error, Path> errorFiles = new HashSetValuedHashMap<>();
 
   /**
-   * The handler for the include files.
+   * The transformer for the include files.
    */
-  private final IncludeHandler includeHandler = new IncludeHandler();
+  private final IncludeTransformer includeTransformer = new IncludeTransformer();
 
   @Override
   public Integer call() throws Exception
   {
+    // add the consoleHandler to the log, to always write to the console
     log.addHandler(new ConsoleHandler());
 
     if (format == Format.SQL && StringUtils.isBlank(databaseType))
-    {
+      // check that SQL format has a databaseType specified
       throw new ParameterException(spec.commandLine(), "Option '--database-type' is required, when format SQL is given");
-    }
 
+    // convert all files
     if (Files.isDirectory(input))
     {
       // multiple files, convert them all
@@ -91,9 +93,11 @@ public class FormatConverter implements Callable<Integer>
       convertFile(input);
     }
 
-    // handles the includes after all files were transformed
-    if (!includeHandler.getIncludeFiles().isEmpty())
-      handleIncludes();
+
+    // transform the includes after all files were transformed
+    if (!includeTransformer.getIncludeFiles().isEmpty())
+      transformIncludes();
+
 
     if (errorFiles.isEmpty())
       // no errors, everything was fine
@@ -118,22 +122,22 @@ public class FormatConverter implements Callable<Integer>
   }
 
   /**
-   * Handles the files with includes.
+   * Transforms the files with includes.
    */
-  private void handleIncludes()
+  private void transformIncludes()
   {
-    for (Path includeFile : includeHandler.getIncludeFiles())
+    for (Path includeFile : includeTransformer.getIncludeFiles())
     {
       try
       {
-        System.out.printf("Handling file '%s' with includes%n", relativizeInput(includeFile));
+        System.out.printf("Transforming file '%s' with includes%n", relativizeInput(includeFile));
 
-        includeHandler.handleIncludes(input, includeFile, generateNewFileName(includeFile, false));
+        includeTransformer.transformIncludes(input, includeFile, generateNewFileName(includeFile, false));
       }
       catch (Exception pE)
       {
-        log.log(Level.WARNING, String.format("error while handling file with includes '%s' to format %s", includeFile, format), pE);
-        errorFiles.put(Error.HANDLING_INCLUDES, includeFile);
+        log.log(Level.WARNING, String.format("error while transforming file with includes '%s' to format %s", includeFile, format), pE);
+        errorFiles.put(Error.TRANSFORMING_INCLUDES, includeFile);
         copyOldFile(includeFile);
       }
     }
@@ -156,10 +160,10 @@ public class FormatConverter implements Callable<Integer>
 
       copyOldFile(pPathToConvert);
     }
-    else if (includeHandler.checkForIncludes(pPathToConvert))
+    else if (includeTransformer.checkForIncludes(pPathToConvert))
     {
-      // file with include will be handled after all other files, save for later
-      includeHandler.getIncludeFiles().add(pPathToConvert);
+      // file with include will be transformed after all other files, save those files for later
+      includeTransformer.getIncludeFiles().add(pPathToConvert);
     }
     else
     {
@@ -183,7 +187,7 @@ public class FormatConverter implements Callable<Integer>
           // and then write them
           serializer.write(changeLog.getChangeSets(), outputStream);
 
-          includeHandler.addConvertedFile(pPathToConvert, newFilePath);
+          includeTransformer.addConvertedFile(pPathToConvert, newFilePath);
         }
       }
       catch (Exception pE)

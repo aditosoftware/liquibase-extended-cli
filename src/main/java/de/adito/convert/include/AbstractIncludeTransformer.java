@@ -11,22 +11,21 @@ import java.util.logging.*;
 import java.util.regex.*;
 
 /**
- * Abstract handler for changing the content of any include file
+ * Abstract transformer for changing the content of any include file
  *
  * @author r.hartinger, 27.06.2024
  */
 @Log
-public abstract class AbstractIncludeHandler
+abstract class AbstractIncludeTransformer
 {
 
   /**
-   * Adds the console handler when creating the instance
+   * Adds the {@link ConsoleHandler} when creating the instance to the logger, in order to always log to the console.
    */
-  protected AbstractIncludeHandler()
+  protected AbstractIncludeTransformer()
   {
     log.addHandler(new ConsoleHandler());
   }
-
 
   /**
    * Checks for includes in a given file.
