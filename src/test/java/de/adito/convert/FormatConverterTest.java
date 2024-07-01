@@ -25,7 +25,7 @@ import java.util.function.*;
 import java.util.stream.*;
 
 import static de.adito.CliTestUtils.*;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -91,7 +91,6 @@ class FormatConverterTest
     /**
      * Tests that the error handling works, when an invalid file was tried to convert and then the copy does fail
      */
-
     @Test
     void shouldHandleErrorWhileCopyInvalidFiles()
     {
@@ -120,7 +119,6 @@ class FormatConverterTest
                     " - " + changelog,
                     "These file(s) were NOT copied to the new location."
                 ))
-                //.additionalAssert(() -> assertThat(outputDir.resolve(changelog.getFileName())).as("file was not copied").doesNotExist())
                 .build(),
             "convert", "--format", Format.YAML.name(), changelog.toString(), outputDir.toFile().getAbsolutePath());
       }
@@ -321,7 +319,6 @@ class FormatConverterTest
     /**
      * @return the arguments for {@link #shouldConvertFromEveryFormatToEveryFormat(Format, Path, String, String)}
      */
-
     private @NonNull Stream<Arguments> shouldConvertFromEveryFormatToEveryFormat()
     {
       Map<Format, Path> formats = new HashMap<>();
@@ -920,10 +917,6 @@ class FormatConverterTest
       @NonNull
       private Path includeFile;
     }
-
-
-    ////////////// TODO das unten benötigt?
-
 
     /**
      * @return the arguments for {@link #shouldHandleIncludesCorrectly(Format, Format)}
