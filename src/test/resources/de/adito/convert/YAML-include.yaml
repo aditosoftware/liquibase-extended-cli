@@ -15,3 +15,5 @@ databaseChangeLog:
       file: JSON.json
       labels: bar
       relativeToChangelogFile: true
+  - include:
+      foo: bar
