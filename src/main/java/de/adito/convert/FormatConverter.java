@@ -8,8 +8,6 @@ import liquibase.resource.*;
 import liquibase.serializer.*;
 import lombok.*;
 import lombok.extern.java.Log;
-import org.apache.commons.collections4.MultiValuedMap;
-import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import picocli.CommandLine;
@@ -60,7 +58,7 @@ public class FormatConverter implements Callable<Integer>
   /**
    * The files that could not be converted. These will be put out at the end of the command execution.
    */
-  private final MultiValuedMap<Error, Path> errorFiles = new HashSetValuedHashMap<>();
+  private final Map<Error, Set<Path>> errorFiles = new EnumMap<>(Error.class);
 
   /**
    * The transformer for the include files.
@@ -104,10 +102,13 @@ public class FormatConverter implements Callable<Integer>
       return 0;
     else
     {
-      // otherwise, print out every error with their files
-      System.err.println("Error converting " + errorFiles.size() + " file(s):");
+      int numberOfErrors = errorFiles.values().stream().mapToInt(Set::size).sum();
 
-      for (Map.Entry<Error, Collection<Path>> entry : errorFiles.asMap().entrySet())
+
+      // otherwise, print out every error with their files
+      System.err.println("Error converting " + numberOfErrors + " file(s):");
+
+      for (Map.Entry<Error, Set<Path>> entry : errorFiles.entrySet())
       {
         Error error = entry.getKey();
 
@@ -137,7 +138,7 @@ public class FormatConverter implements Callable<Integer>
       catch (Exception pE)
       {
         log.log(Level.WARNING, String.format("error while transforming file with includes '%s' to format %s", includeFile, format), pE);
-        errorFiles.put(Error.TRANSFORMING_INCLUDES, includeFile);
+        errorFiles.computeIfAbsent(Error.TRANSFORMING_INCLUDES, pKey -> new HashSet<>()).add(includeFile);
         copyOldFile(includeFile);
       }
     }
@@ -193,7 +194,7 @@ public class FormatConverter implements Callable<Integer>
       catch (Exception pE)
       {
         log.log(Level.WARNING, String.format("error converting file '%s' to format %s", pPathToConvert, format), pE);
-        errorFiles.put(Error.CONVERTING_FILES, pPathToConvert);
+        errorFiles.computeIfAbsent(Error.CONVERTING_FILES, pKey -> new HashSet<>()).add(pPathToConvert);
         copyOldFile(pPathToConvert);
       }
     }
@@ -215,7 +216,7 @@ public class FormatConverter implements Callable<Integer>
     }
     catch (IOException pE)
     {
-      errorFiles.put(Error.COPYING_FILES, pOldFile);
+      errorFiles.computeIfAbsent(Error.COPYING_FILES, pKey -> new HashSet<>()).add(pOldFile);
       log.log(Level.WARNING, String.format("error copying file '%s' to new target dir", pOldFile), pE);
     }
   }
