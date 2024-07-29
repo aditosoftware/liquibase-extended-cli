@@ -525,8 +525,8 @@ class FormatConverterTest
   @TestInstance(TestInstance.Lifecycle.PER_CLASS)
   class ConvertIncludes
   {
-    public static final String firstExpectedIncludeFilesInfoMessage = "The following files will not be converted, since they contain include/includeAll:";
-    public static final String secondExpectedIncludeConversionMessage = "If possible, the paths of those includes were transformed to use the new file ending.";
+    private static final String firstExpectedIncludeFilesInfoMessage = "The following files will not be converted, since they contain include/includeAll:";
+    private static final String secondExpectedIncludeConversionMessage = "If possible, the paths of those includes were transformed to use the new file ending.";
 
     /**
      * Supplies all formats that are supported in the community edition.
@@ -713,7 +713,6 @@ class FormatConverterTest
      */
     private Stream<Arguments> shouldConvertNestedChangelog()
     {
-      ClassLoader classLoader = this.getClass().getClassLoader();
       String xmlContextPath = "context/xml/";
       ArgumentsForNestedChangelogs xml = new ArgumentsForNestedChangelogs(
           Format.XML, CliTestUtils.loadResource(xmlContextPath),
