@@ -94,7 +94,12 @@ public class FormatConverter implements Callable<Integer>
 
     // transform the includes after all files were transformed
     if (!includeTransformer.getIncludeFiles().isEmpty())
+    {
       transformIncludes();
+      System.out.println("The following files will not be converted, since they contain include/includeAll:");
+      System.out.println(includeTransformer.getIncludeFiles().stream().map(pPath -> " - " + pPath).collect(Collectors.joining("\n")));
+      System.out.println("If possible, the paths of those includes were transformed to use the new file ending.");
+    }
 
 
     if (errorFiles.isEmpty())
