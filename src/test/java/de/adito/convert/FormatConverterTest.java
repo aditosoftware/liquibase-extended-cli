@@ -586,16 +586,18 @@ class FormatConverterTest
       errTexts.add("Error while transforming includes:");
       errTexts.add("These file(s) were copied to the new location.");
 
-
+      List<String> expectedOutput = transformedFiles.stream()
+          .map(pPath -> input.getParent().relativize(pPath))
+          .map(Path::toString)
+          .map(transformText::apply)
+          .collect(Collectors.toList());
+      expectedOutput.add(firstExpectedIncludeFilesInfoMessage);
+      expectedOutput.addAll(transformedFiles.stream().map(pPath -> " - " + pPath).collect(Collectors.toList()));
+      expectedOutput.add(secondExpectedIncludeConversionMessage);
       assertCall(
           ExpectedCallResults.builder()
               .errorCode(3)
-              .outTexts(
-                  transformedFiles.stream()
-                      .map(pPath -> input.getParent().relativize(pPath))
-                      .map(Path::toString)
-                      .map(transformText::apply)
-                      .collect(Collectors.toList()))
+              .outTexts(expectedOutput)
               .errTexts(errTexts)
               .build(),
           "convert", "--format", Format.YAML.name(), input.toString(), outputDir.toFile().getAbsolutePath());
@@ -689,7 +691,13 @@ class FormatConverterTest
       assertCall(
           ExpectedCallResults.builder()
               .errorCode(0)
-              .outText(transformText.apply(preparedIncludes.inputDirectory.getParent().relativize(preparedIncludes.includeFile).toString()))
+              .outTexts(List.of(
+                            transformText.apply(preparedIncludes.inputDirectory.getParent().relativize(preparedIncludes.includeFile).toString()),
+                            firstExpectedIncludeFilesInfoMessage,
+                            " - " + preparedIncludes.includeFile,
+                            secondExpectedIncludeConversionMessage
+                        )
+              )
               .expectedFile(expectedFile)
               .additionalAssert(
                   () -> {
@@ -769,7 +777,7 @@ class FormatConverterTest
           pFormat -> new String[]{"file: version2/v2changelog1" + pFormat.getFileEnding(), "file: version2/v2changelog2" + pFormat.getFileEnding()}
       );
 
-String jsonContextPath = "context/json/";
+      String jsonContextPath = "context/json/";
       ArgumentsForNestedChangelogs json = new ArgumentsForNestedChangelogs(
           Format.JSON, CliTestUtils.loadResource(jsonContextPath),
           List.of(
