@@ -586,13 +586,13 @@ class FormatConverterTest
       errTexts.add("Error while transforming includes:");
       errTexts.add("These file(s) were copied to the new location.");
 
-      List<String> expectedOutput = transformedFiles.stream()
-          .map(pPath -> input.getParent().relativize(pPath))
-          .map(Path::toString)
-          .map(transformText::apply)
-          .collect(Collectors.toList());
+      List<String> expectedOutput =
+          transformedFiles.stream()
+              .flatMap(pPath -> Stream.of(
+                  transformText.apply(input.getParent().relativize(pPath).toString()),
+                  " - " + pPath
+              )).collect(Collectors.toList());
       expectedOutput.add(firstExpectedIncludeFilesInfoMessage);
-      expectedOutput.addAll(transformedFiles.stream().map(pPath -> " - " + pPath).collect(Collectors.toList()));
       expectedOutput.add(secondExpectedIncludeConversionMessage);
       assertCall(
           ExpectedCallResults.builder()
