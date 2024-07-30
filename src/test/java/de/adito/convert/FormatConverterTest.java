@@ -525,6 +525,9 @@ class FormatConverterTest
   @TestInstance(TestInstance.Lifecycle.PER_CLASS)
   class ConvertIncludes
   {
+    private static final String firstExpectedIncludeFilesInfoMessage = "The following files will not be converted, since they contain include/includeAll:";
+    private static final String secondExpectedIncludeConversionMessage = "If possible, the paths of those includes were transformed to use the new file ending.";
+
     /**
      * Supplies all formats that are supported in the community edition.
      */
@@ -583,16 +586,18 @@ class FormatConverterTest
       errTexts.add("Error while transforming includes:");
       errTexts.add("These file(s) were copied to the new location.");
 
-
+      List<String> expectedOutput =
+          transformedFiles.stream()
+              .flatMap(pPath -> Stream.of(
+                  transformText.apply(input.getParent().relativize(pPath).toString()),
+                  " - " + pPath
+              )).collect(Collectors.toList());
+      expectedOutput.add(firstExpectedIncludeFilesInfoMessage);
+      expectedOutput.add(secondExpectedIncludeConversionMessage);
       assertCall(
           ExpectedCallResults.builder()
               .errorCode(3)
-              .outTexts(
-                  transformedFiles.stream()
-                      .map(pPath -> input.getParent().relativize(pPath))
-                      .map(Path::toString)
-                      .map(transformText::apply)
-                      .collect(Collectors.toList()))
+              .outTexts(expectedOutput)
               .errTexts(errTexts)
               .build(),
           "convert", "--format", Format.YAML.name(), input.toString(), outputDir.toFile().getAbsolutePath());
@@ -686,7 +691,13 @@ class FormatConverterTest
       assertCall(
           ExpectedCallResults.builder()
               .errorCode(0)
-              .outText(transformText.apply(preparedIncludes.inputDirectory.getParent().relativize(preparedIncludes.includeFile).toString()))
+              .outTexts(List.of(
+                            transformText.apply(preparedIncludes.inputDirectory.getParent().relativize(preparedIncludes.includeFile).toString()),
+                            firstExpectedIncludeFilesInfoMessage,
+                            " - " + preparedIncludes.includeFile,
+                            secondExpectedIncludeConversionMessage
+                        )
+              )
               .expectedFile(expectedFile)
               .additionalAssert(
                   () -> {
@@ -710,8 +721,9 @@ class FormatConverterTest
      */
     private Stream<Arguments> shouldConvertNestedChangelog()
     {
+      String xmlContextPath = "context/xml/";
       ArgumentsForNestedChangelogs xml = new ArgumentsForNestedChangelogs(
-          Format.XML, CliTestUtils.loadResource("context/xml/"),
+          Format.XML, CliTestUtils.loadResource(xmlContextPath),
           List.of(
               convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.xml"),
               convertText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.xml"),
@@ -724,7 +736,11 @@ class FormatConverterTest
               convertText.apply("xml" + File.separatorChar + "three-changelogs.xml"),
               convertText.apply("xml" + File.separatorChar + "utf8-changelog.xml"),
               transformText.apply("xml" + File.separatorChar + "nested-changelog.xml"),
-              transformText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.xml")
+              transformText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.xml"),
+              firstExpectedIncludeFilesInfoMessage,
+              " - " + CliTestUtils.loadResource(xmlContextPath) + File.separatorChar + "nested-changelog.xml",
+              " - " + CliTestUtils.loadResource(xmlContextPath) + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.xml",
+              secondExpectedIncludeConversionMessage
           ),
           pFormat -> new String[]{"<include context=\"xml-junit\" file=\"changelogs/changelog1" + pFormat.getFileEnding() + "\" relativeToChangelogFile=\"true\"/>",
                                   "<include context=\"xml-junit\" file=\"changelogs/changelog2" + pFormat.getFileEnding() + "\" relativeToChangelogFile=\"true\"/>",
@@ -734,8 +750,9 @@ class FormatConverterTest
                                   "<include context=\"xml-v2\" file=\"version2/v2changelog2" + pFormat.getFileEnding() + "\" relativeToChangelogFile=\"true\"/>"}
       );
 
+      String yamlContextPath = "context/yaml";
       ArgumentsForNestedChangelogs yaml = new ArgumentsForNestedChangelogs(
-          Format.YAML, CliTestUtils.loadResource("context/yaml/"),
+          Format.YAML, CliTestUtils.loadResource(yamlContextPath),
           List.of(
               convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.yaml"),
               convertText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.yaml"),
@@ -748,16 +765,21 @@ class FormatConverterTest
               convertText.apply("yaml" + File.separatorChar + "three-changelogs.yaml"),
               convertText.apply("yaml" + File.separatorChar + "utf8-changelog.yaml"),
               transformText.apply("yaml" + File.separatorChar + "nested-changelog.yaml"),
-              transformText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.yaml")),
+              transformText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.yaml"),
+              firstExpectedIncludeFilesInfoMessage,
+              " - " + CliTestUtils.loadResource(yamlContextPath) + File.separatorChar + "nested-changelog.yaml",
+              " - " + CliTestUtils.loadResource(yamlContextPath) + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.yaml",
+              secondExpectedIncludeConversionMessage
+          ),
           pFormat -> new String[]{"file: changelogs/changelog1" + pFormat.getFileEnding(),
                                   "file: changelogs/changelog2" + pFormat.getFileEnding(),
                                   "file: changelogs/changelog3.yaml"},
           pFormat -> new String[]{"file: version2/v2changelog1" + pFormat.getFileEnding(), "file: version2/v2changelog2" + pFormat.getFileEnding()}
       );
 
-
+      String jsonContextPath = "context/json/";
       ArgumentsForNestedChangelogs json = new ArgumentsForNestedChangelogs(
-          Format.JSON, CliTestUtils.loadResource("context/json/"),
+          Format.JSON, CliTestUtils.loadResource(jsonContextPath),
           List.of(
               convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog1.json"),
               convertText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog2.json"),
@@ -770,7 +792,11 @@ class FormatConverterTest
               convertText.apply("json" + File.separatorChar + "three-changelogs.json"),
               convertText.apply("json" + File.separatorChar + "utf8-changelog.json"),
               transformText.apply("json" + File.separatorChar + "nested-changelog.json"),
-              transformText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.json")
+              transformText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.json"),
+              firstExpectedIncludeFilesInfoMessage,
+              " - " + CliTestUtils.loadResource(jsonContextPath) + File.separatorChar + "nested-changelog.json",
+              " - " + CliTestUtils.loadResource(jsonContextPath) + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.json",
+              secondExpectedIncludeConversionMessage
           ),
           pFormat -> new String[]{"\"file\": \"changelogs/changelog1" + pFormat.getFileEnding() + "\",",
                                   "\"file\": \"changelogs/changelog2" + pFormat.getFileEnding() + "\",",
