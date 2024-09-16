@@ -16,6 +16,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <picocli-version>4.7.5</picocli-version>
+    <junit-version>5.10.0</junit-version>
   </properties>
 
   <build>
@@ -43,6 +44,13 @@
             <include>**/*Test.java</include>
           </includes>
         </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit-version}</version>
+          </dependency>
+        </dependencies>
       </plugin>
 
     </plugins>
@@ -82,7 +90,7 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <version>5.10.2</version>
+      <version>${junit-version}</version>
       <scope>test</scope>
     </dependency>
 
