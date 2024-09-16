@@ -18,5 +18,9 @@ jobs:
       - name: validate project
         run: mvn validate
 
-      - name: run clean install
-        run: mvn clean install
+      - name: compile project
+        run: mvn compile
+
+      - name: test project
+        run: mvn test
+
