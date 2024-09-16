@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 17
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           java-version: '21'
@@ -18,8 +18,5 @@ jobs:
       - name: validate project
         run: mvn validate
 
-      - name: compile project
-        run: mvn compile
-
-      - name: test project
-        run: mvn test
+      - name: run clean install
+        run: mvn clean install
