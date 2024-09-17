@@ -1,0 +1,25 @@
+name: Build Project
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '16'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: validate project
+        run: mvn validate
+
+      - name: compile project
+        run: mvn compile
+
+      - name: test project
+        run: mvn test

@@ -10,7 +10,7 @@ Alternatively, you can build via the `installScript.sh`. This will also copy the
 
 ## Updating dependencies
 
-Whenever you are updating dependencies, you need also check the [vscode-liquibase](https://gitlab.adito.de/plattform/designer/vscode-liquibase)
+Whenever you are updating dependencies, you need also check the [vscode-liquibase](https://github.com/aditosoftware/vscode-liquibase)
 extension if it still works. If it no longer works, then you might want to update the dependencies there as well.
 
 ## Usage
