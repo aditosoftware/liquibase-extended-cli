@@ -15,7 +15,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-    <picocli-version>4.7.5</picocli-version>
+    <picocli-version>4.7.6</picocli-version>
     <junit-version>5.10.0</junit-version>
   </properties>
 
