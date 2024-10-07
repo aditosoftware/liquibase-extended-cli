@@ -8,6 +8,6 @@ updates:
   - package-ecosystem: "maven"
     directory: "/"
     reviewers:
-      - "aditosoftware/devs-designer"
+      - "rH4rtinger"
     schedule:
       interval: "weekly"
