@@ -30,6 +30,12 @@ jobs:
       - name: test project
         run: mvn test -Pcoverage
 
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
       - name: Analyze with SonarCloud
         #        uses: SonarSource/sonarcloud-github-action@v3.1.0
         run: mvn sonar:sonar -Dsonar.host.url=https://sonarcloud.io -Dsonar.projectKey=aditosoftware_liquibase-extended-cli -Dsonar.organization=aditosoftware -Dsonar.tests=./src/test/java/
