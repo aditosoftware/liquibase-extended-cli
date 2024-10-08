@@ -32,7 +32,7 @@ jobs:
 
       - name: Analyze with SonarCloud
         #        uses: SonarSource/sonarcloud-github-action@v3.1.0
-        run: mvn sonar:sonar -Dsonar.projectKey=aditosoftware_liquibase-extended-cli -Dsonar.organization=aditosoftware -Dsonar.tests=./src/test/java/
+        run: mvn sonar:sonar -Dsonar.host.url=https://sonarcloud.io -Dsonar.projectKey=aditosoftware_liquibase-extended-cli -Dsonar.organization=aditosoftware -Dsonar.tests=./src/test/java/
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # Generate a token on Sonarcloud.io, add it to the secrets of this repo with the name SONAR_TOKEN (Settings > Secrets > Actions > add new repository secret)
         # with:
