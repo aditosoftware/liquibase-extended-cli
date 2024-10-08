@@ -1,5 +1,10 @@
 # liquibase-extended-cli
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=aditosoftware_liquibase-extended-cli&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=aditosoftware_liquibase-extended-cli)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=aditosoftware_liquibase-extended-cli&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=aditosoftware_liquibase-extended-cli)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=aditosoftware_liquibase-extended-cli&metric=coverage)](https://sonarcloud.io/summary/new_code?id=aditosoftware_liquibase-extended-cli)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=aditosoftware_liquibase-extended-cli&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=aditosoftware_liquibase-extended-cli)
+
 Extended CLI functionality for liquibase.
 
 ## Build
