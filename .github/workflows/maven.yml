@@ -40,6 +40,6 @@ jobs:
           distribution: 'temurin'
           cache: maven
       - name: Analyze with SonarCloud
-        run: mvn sonar:sonar -Pcoverage -Dsonar.host.url=https://sonarcloud.io -Dsonar.projectKey=aditosoftware_liquibase-extended-cli -Dsonar.organization=aditosoftware -Dsonar.tests=./src/test/java/
+        run: mvn sonar:sonar -Pcoverage -Dsonar.host.url=https://sonarcloud.io -Dsonar.projectKey=aditosoftware_liquibase-extended-cli -Dsonar.organization=aditosoftware -Dsonar.tests=./src/test/java/ -X -Dsonar.verbose=true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
