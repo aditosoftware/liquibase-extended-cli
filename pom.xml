@@ -20,7 +20,7 @@
     <sonar.organization>aditosoftware</sonar.organization>
     <sonar.tests>src/test/java</sonar.tests>
 
-    <picocli-version>4.7.6</picocli-version>
+    <picocli-version>4.7.7</picocli-version>
     <junit-version>5.12.2</junit-version>
   </properties>
 
