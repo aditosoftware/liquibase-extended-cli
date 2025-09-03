@@ -17,7 +17,7 @@ jobs:
 
       # JDK16 is needed for the tests
       - name: Set up JDK 16
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '16'
           distribution: 'temurin'
@@ -34,7 +34,7 @@ jobs:
 
       # JDK 17 is needed for sonar analysis
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
