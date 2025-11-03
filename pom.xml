@@ -21,7 +21,7 @@
     <sonar.tests>src/test/java</sonar.tests>
 
     <picocli-version>4.7.7</picocli-version>
-    <junit-version>5.14.0</junit-version>
+    <junit-version>5.14.1</junit-version>
   </properties>
 
   <build>
