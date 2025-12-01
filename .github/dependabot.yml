@@ -9,8 +9,15 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      # ignore liquibase, because we do not want to update from 4.28
+      - dependency-name: org.liquibase:liquibase-core
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
