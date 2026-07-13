@@ -2,22 +2,16 @@ package de.adito;
 
 import lombok.*;
 import org.assertj.core.api.AbstractStringAssert;
-import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.function.Executable;
-import org.mockito.*;
 
 import java.net.URL;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.atomic.*;
-import java.util.function.Consumer;
-import java.util.logging.*;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 /**
  * Util class for testing the CLI methods.
@@ -28,22 +22,22 @@ import static org.mockito.Mockito.*;
 public class CliTestUtils
 {
 
-  private static final ClassLoader classLoader = CliTestUtils.class.getClassLoader();
-  private static final String packageName = CliTestUtils.class.getPackageName().replace('.', '/');
+  private static final ClassLoader CLASS_LOADER = CliTestUtils.class.getClassLoader();
+  private static final String PACKAGE_NAME = CliTestUtils.class.getPackageName().replace('.', '/');
 
 
   /**
    * Loads a resource in the {@code de.adito} package.
    *
    * @param pName the name where the resource is located inside {@code de/adito} folders
-   * @return the loaded resource as path
+   * @return the loaded resource as a path
    */
   @SneakyThrows
   @NonNull
   public static Path loadResource(@NonNull String pName)
   {
-    String resourceToLoad = packageName + "/" + pName;
-    URL url = classLoader.getResource(resourceToLoad);
+    String resourceToLoad = PACKAGE_NAME + "/" + pName;
+    URL url = CLASS_LOADER.getResource(resourceToLoad);
     assertNotNull(url, "url for " + resourceToLoad + " should be there");
     return Paths.get(url.toURI());
   }
@@ -53,7 +47,7 @@ public class CliTestUtils
    * Calls the CLI with the given arguments.
    *
    * @param args the arguments
-   * @return the captured CallResults with stdout, stderr and error code.
+   * @return the captured CallResults with stdout, stderr, and error code.
    * @see #assertCall(ExpectedCallResults, String...) for calling and asserts at the same time
    */
   @SneakyThrows
@@ -75,7 +69,7 @@ public class CliTestUtils
    *
    * @param pExpectedCallResults the expected values from the calls
    * @param args                 the arguments
-   * @see #call(String...) - for just calling without asserts
+   * @see #call(String...) - for just calling without assertions
    */
   public static void assertCall(@NonNull CliTestUtils.ExpectedCallResults pExpectedCallResults, String @NonNull ... args)
   {
@@ -104,11 +98,11 @@ public class CliTestUtils
         }
     ));
 
-    // only add check for file existence, if files were given
+    // only add check for file existence if files were given
     if (!pExpectedCallResults.expectedFiles.isEmpty())
       asserts.add(() -> assertThat(pExpectedCallResults.expectedFiles).allSatisfy(pPath -> assertThat(pPath).as("new file should exist").exists()));
 
-    // and add the custom asserts
+    // and add the custom assertions
     asserts.addAll(pExpectedCallResults.additionalAsserts);
 
 

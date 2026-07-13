@@ -41,19 +41,19 @@ class FormatConverterTest
   private Path outputDir;
 
   /**
-   * Creates the text that is used for logging the converting of the changesets.
+   * Creates the text used for logging the converting of the changesets.
    */
-  private final Function<String, String> convertText = (pPath) -> "Converting changeset '" + pPath + "'";
+  private final Function<String, String> convertText = pPath -> "Converting changeset '" + pPath + "'";
 
   /**
-   * Creates the text that is used for logging the copying of the changesets.
+   * Creates the text used for logging the copying of the changesets.
    */
-  private final Function<String, String> copyText = (pPath) -> "Copying file '" + pPath + "' to new location";
+  private final Function<String, String> copyText = pPath -> "Copying file '" + pPath + "' to new location";
 
   /**
-   * Creates the text that is used for logging the transforming of the changesets with includes.
+   * Creates the text used for logging the transforming of the changesets with includes.
    */
-  private final Function<String, String> transformText = (pPath) -> "Transforming file '" + pPath + "' with includes";
+  private final Function<String, String> transformText = pPath -> "Transforming file '" + pPath + "' with includes";
 
   /**
    * Tests the copying of files
@@ -89,7 +89,7 @@ class FormatConverterTest
 
 
     /**
-     * Tests that the error handling works, when an invalid file was tried to convert and then the copy does fail
+     * Tests that the error handling works when an invalid file was tried to convert and then the copy does fail
      */
     @Test
     void shouldHandleErrorWhileCopyInvalidFiles()
@@ -126,7 +126,7 @@ class FormatConverterTest
 
 
     /**
-     * Tests that a file from with a not supported extension, will be copied to the new location.
+     * Tests that a file from with a not supported extension will be copied to the new location.
      */
     @Test
     void shouldCopyInvalidFileExtensionToNewLocation()
@@ -271,7 +271,7 @@ class FormatConverterTest
   {
 
     /**
-     * Creates arguments with a cross product of each format, except matching formats.
+     * Creates arguments with a cross-product of each format, except matching formats.
      *
      * @return the created arguments
      */
@@ -288,8 +288,8 @@ class FormatConverterTest
      *
      * @param pGivenFormat       the given format
      * @param pToTransformFormat the format to which the file in the given format should be transformed.
-     * @see <a href="https://github.com/liquibase/liquibase/issues/4379">Liquibase Issue #4379</a> describes currently a problem with pre-conditions,
-     * therefore all tests that transform to JSON or YAML with pre-conditions are failing.
+     * @see <a href="https://github.com/liquibase/liquibase/issues/4379">Liquibase Issue #4379</a> currently describes a problem with pre-conditions.
+     * Therefore, all tests that transform to JSON or YAML with pre-conditions are failing.
      */
     @ParameterizedTest
     @MethodSource
@@ -321,7 +321,7 @@ class FormatConverterTest
      */
     private @NonNull Stream<Arguments> shouldConvertFromEveryFormatToEveryFormat()
     {
-      Map<Format, Path> formats = new HashMap<>();
+      Map<Format, Path> formats = new EnumMap<>(Format.class);
 
       // loading for every argument the path
       Arrays.stream(Format.values()).forEach(pFormat -> formats.put(pFormat, getPathForFormat(pFormat)));
@@ -362,7 +362,7 @@ class FormatConverterTest
 
 
       if (pFormat == Format.SQL)
-        // only call with additional parameter when format is sql
+        // only call with additional parameter when format is SQL
         assertCall(expectedCallResults, "convert", "--format", pFormat.name(), "--database-type", "mariadb", pInput.toString(), outputDir.toFile().getAbsolutePath());
       else
         assertCall(expectedCallResults, "convert", "--format", pFormat.name(), pInput.toString(), outputDir.toFile().getAbsolutePath());
@@ -412,7 +412,7 @@ class FormatConverterTest
               .outTexts(expected)
               .expectedFiles(
                   Arrays.stream(Format.values())
-                      // file name should be always include .mariadb before the ending
+                      // file name should always include ".mariadb" before the ending
                       // except when the file is in our current format, then it is just copied
                       .map(pFilenameFormat -> {
                         if (pFilenameFormat == pFormat)
@@ -525,8 +525,8 @@ class FormatConverterTest
   @TestInstance(TestInstance.Lifecycle.PER_CLASS)
   class ConvertIncludes
   {
-    private static final String firstExpectedIncludeFilesInfoMessage = "The following files will not be converted, since they contain include/includeAll:";
-    private static final String secondExpectedIncludeConversionMessage = "If possible, the paths of those includes were transformed to use the new file ending.";
+    private static final String FIRST_EXPECTED_INCLUDE_FILES_INFO_MESSAGE = "The following files will not be converted, since they contain include/includeAll:";
+    private static final String SECOND_EXPECTED_INCLUDE_CONVERSION_MESSAGE = "If possible, the paths of those includes were transformed to use the new file ending.";
 
     /**
      * Supplies all formats that are supported in the community edition.
@@ -592,8 +592,8 @@ class FormatConverterTest
                   transformText.apply(input.getParent().relativize(pPath).toString()),
                   " - " + pPath
               )).collect(Collectors.toList());
-      expectedOutput.add(firstExpectedIncludeFilesInfoMessage);
-      expectedOutput.add(secondExpectedIncludeConversionMessage);
+      expectedOutput.add(FIRST_EXPECTED_INCLUDE_FILES_INFO_MESSAGE);
+      expectedOutput.add(SECOND_EXPECTED_INCLUDE_CONVERSION_MESSAGE);
       assertCall(
           ExpectedCallResults.builder()
               .errorCode(3)
@@ -676,7 +676,7 @@ class FormatConverterTest
      *
      * @param pExpected          the expected elements in the lines with {@code file}
      * @param pAdditionalFormats list of formats that should be in the input folder next to the include file
-     * @param pFormatToConvertTo to format to which the given folder should be prepared
+     * @param pFormatToConvertTo the format to which the given folder should be prepared
      * @param pPreparedFormat    the format for the include file in the prepared folder
      */
     @ParameterizedTest
@@ -693,9 +693,9 @@ class FormatConverterTest
               .errorCode(0)
               .outTexts(List.of(
                             transformText.apply(preparedIncludes.inputDirectory.getParent().relativize(preparedIncludes.includeFile).toString()),
-                            firstExpectedIncludeFilesInfoMessage,
+                            FIRST_EXPECTED_INCLUDE_FILES_INFO_MESSAGE,
                             " - " + preparedIncludes.includeFile,
-                            secondExpectedIncludeConversionMessage
+                            SECOND_EXPECTED_INCLUDE_CONVERSION_MESSAGE
                         )
               )
               .expectedFile(expectedFile)
@@ -737,10 +737,10 @@ class FormatConverterTest
               convertText.apply("xml" + File.separatorChar + "utf8-changelog.xml"),
               transformText.apply("xml" + File.separatorChar + "nested-changelog.xml"),
               transformText.apply("xml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.xml"),
-              firstExpectedIncludeFilesInfoMessage,
+              FIRST_EXPECTED_INCLUDE_FILES_INFO_MESSAGE,
               " - " + CliTestUtils.loadResource(xmlContextPath) + File.separatorChar + "nested-changelog.xml",
               " - " + CliTestUtils.loadResource(xmlContextPath) + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.xml",
-              secondExpectedIncludeConversionMessage
+              SECOND_EXPECTED_INCLUDE_CONVERSION_MESSAGE
           ),
           pFormat -> new String[]{"<include context=\"xml-junit\" file=\"changelogs/changelog1" + pFormat.getFileEnding() + "\" relativeToChangelogFile=\"true\"/>",
                                   "<include context=\"xml-junit\" file=\"changelogs/changelog2" + pFormat.getFileEnding() + "\" relativeToChangelogFile=\"true\"/>",
@@ -766,10 +766,10 @@ class FormatConverterTest
               convertText.apply("yaml" + File.separatorChar + "utf8-changelog.yaml"),
               transformText.apply("yaml" + File.separatorChar + "nested-changelog.yaml"),
               transformText.apply("yaml" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.yaml"),
-              firstExpectedIncludeFilesInfoMessage,
+              FIRST_EXPECTED_INCLUDE_FILES_INFO_MESSAGE,
               " - " + CliTestUtils.loadResource(yamlContextPath) + File.separatorChar + "nested-changelog.yaml",
               " - " + CliTestUtils.loadResource(yamlContextPath) + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.yaml",
-              secondExpectedIncludeConversionMessage
+              SECOND_EXPECTED_INCLUDE_CONVERSION_MESSAGE
           ),
           pFormat -> new String[]{"file: changelogs/changelog1" + pFormat.getFileEnding(),
                                   "file: changelogs/changelog2" + pFormat.getFileEnding(),
@@ -793,10 +793,10 @@ class FormatConverterTest
               convertText.apply("json" + File.separatorChar + "utf8-changelog.json"),
               transformText.apply("json" + File.separatorChar + "nested-changelog.json"),
               transformText.apply("json" + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.json"),
-              firstExpectedIncludeFilesInfoMessage,
+              FIRST_EXPECTED_INCLUDE_FILES_INFO_MESSAGE,
               " - " + CliTestUtils.loadResource(jsonContextPath) + File.separatorChar + "nested-changelog.json",
               " - " + CliTestUtils.loadResource(jsonContextPath) + File.separatorChar + "changelogs" + File.separatorChar + "changelog3.json",
-              secondExpectedIncludeConversionMessage
+              SECOND_EXPECTED_INCLUDE_CONVERSION_MESSAGE
           ),
           pFormat -> new String[]{"\"file\": \"changelogs/changelog1" + pFormat.getFileEnding() + "\",",
                                   "\"file\": \"changelogs/changelog2" + pFormat.getFileEnding() + "\",",
@@ -956,7 +956,7 @@ class FormatConverterTest
     }
 
     /**
-     * Tests that the include elements will stay in the transformed elements.
+     * Tests that include elements will stay in the transformed elements.
      *
      * @param pGivenFormat       the given format
      * @param pToTransformFormat the format to which the files should be transformed
@@ -1029,7 +1029,7 @@ class FormatConverterTest
 
 
     /**
-     * Validates that the output directory can not be a file, but must be a directory.
+     * Validates that the output directory cannot be a file but must be a directory.
      *
      * @param pTempDir the temporary directory, in which a temporary file will be created
      */
