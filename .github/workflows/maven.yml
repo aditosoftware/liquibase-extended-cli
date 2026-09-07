@@ -18,6 +18,7 @@ jobs:
           java-version: '16'
           distribution: 'temurin'
           cache: maven
+          verify-signature: false # signature cannot be verified for JDK 16, only 17
 
       - name: validate project
         run: mvn validate
