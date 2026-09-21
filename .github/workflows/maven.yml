@@ -48,16 +48,16 @@ jobs:
 
       - name: Upload SBOM to Dependency-Track
         if: github.ref_name == 'main' && github.event_name != 'pull_request'
-        uses: DependencyTrack/gh-upload-sbom@95c2b5a810450509ef8a67e4f854b42d2ddf7fbf
+        uses: DependencyTrack/gh-upload-sbom@d8935b70f527d6aca6bbef5ab02db3933c9a8626
         with:
-          serverHostname: ${{ secrets.DEPENDENCYTRACK_HOSTNAME }}
-          apiKey: ${{ secrets.DEPENDENCYTRACK_APIKEY }}
-          projectName: ${{ github.event.repository.name }}
-          projectVersion: ${{ github.ref_type == 'tag' && steps.mvn_version.outputs.version || 'current' }}
+          server-hostname: ${{ secrets.DEPENDENCYTRACK_HOSTNAME }}
+          api-key: ${{ secrets.DEPENDENCYTRACK_APIKEY }}
+          project-name: ${{ github.event.repository.name }}
+          project-version: ${{ github.ref_type == 'tag' && steps.mvn_version.outputs.version || 'current' }}
           # add current tag when building for a branch
-          projectTags: designer-extension-pack,vscode-liquibase,${{ github.event.repository.name }}${{ github.ref_type == 'branch' && ',current' || '' }}
-          bomFilename: "target/bom.json"
-          autoCreate: true
+          project-tags: designer-extension-pack,vscode-liquibase,${{ github.event.repository.name }}${{ github.ref_type == 'branch' && ',current' || '' }}
+          bom-filename: "target/bom.json"
+          auto-create: true
 
       # JDK 17 is needed for sonar analysis
       - name: Set up JDK 17
