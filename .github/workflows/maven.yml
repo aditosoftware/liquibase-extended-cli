@@ -48,7 +48,7 @@ jobs:
 
       - name: Upload SBOM to Dependency-Track
         if: github.ref_name == 'main' && github.event_name != 'pull_request'
-        uses: DependencyTrack/gh-upload-sbom@d8935b70f527d6aca6bbef5ab02db3933c9a8626
+        uses: DependencyTrack/gh-upload-sbom@331f980a6eba119842052f447c54b09e4888b4c6
         with:
           server-hostname: ${{ secrets.DEPENDENCYTRACK_HOSTNAME }}
           api-key: ${{ secrets.DEPENDENCYTRACK_APIKEY }}
